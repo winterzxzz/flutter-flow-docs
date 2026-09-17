@@ -1,30 +1,50 @@
 # Flow Docs — Base & Lib
 
 Tài liệu mô tả luồng code giữa hai repo Flutter: **base** (app) và **lib**
-(thư viện dùng chung), tập trung vào hai trục IAP (in-app purchase) và
-IAA (in-app ads).
+(thư viện dùng chung), tập trung vào IAP (in-app purchase) và IAA (in-app ads).
 
 Xem online: https://winterzxzz.github.io/flutter-flow-docs/
 
 ## Nội dung
 
-1. Base và lib — cách hai repo nối với nhau
-2. Thứ tự khởi động và các ràng buộc phụ thuộc
-3. Luồng IAP — UI → cubit → service → RevenueCat → verify server
-4. Luồng IAA — config trong base, vòng đời ad trong lib
-5. Cầu nối IAP ↔ IAA
-6. Luồng tracking — DataBuckets và Adjust
-7. Remote Config — khoá, ba tầng giá trị, thời điểm fetch, cách hỏng
-8. Khoảng trống và rủi ro
-9. Bản đồ file
+| Trang | Nói về |
+| --- | --- |
+| Tổng quan | base và lib nối với nhau bằng gì |
+| Khởi động | thứ tự init trong `main.dart` và ba ràng buộc bắt buộc |
+| IAP | UI → PremiumCubit → PurchaseService → RevenueCat → verify server |
+| IAA | base khai báo, lib thực thi; năm format ad |
+| AdMob chi tiết | luật load, retry, timeout, reload, waterfall của từng format |
+| Remote Config | một khoá, ba tầng giá trị, lúc nào fetch, cách sửa JSON |
+| Tracking | `_sendEvent` và 12 event hiện có |
+| Rủi ro | 10 khoảng trống đọc ra từ source |
+| Bản đồ file | muốn sửa gì thì mở file nào |
+
+## Stack
+
+Next.js App Router (static export) · Tailwind CSS v4 · shadcn/ui · Mermaid.
 
 ## Chạy local
 
-    python3 -m http.server 8000
+```bash
+npm install
+npm run dev
+```
 
-Rồi mở http://localhost:8000
+## Build tĩnh
+
+```bash
+npm run build   # ra thư mục out/
+```
+
+GitHub Actions tự build và deploy mỗi lần push lên `main`
+(`.github/workflows/deploy.yml`).
+
+## Kiểm tra sơ đồ
+
+Mermaid render phía client nên lỗi cú pháp sẽ ra ô trống im lặng thay vì báo
+lỗi build. Khi thêm hoặc sửa sơ đồ, parse lại toàn bộ trước khi push.
 
 ## Lưu ý
 
-Tài liệu đọc từ source bytes ngày 2026-09-17. Khi code đổi, đọc lại rồi
-cập nhật — đừng tin tài liệu hơn tin code.
+Tài liệu đọc từ source bytes ngày 2026-09-17. Khi code đổi, đọc lại rồi cập
+nhật — đừng tin tài liệu hơn tin code.
