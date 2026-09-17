@@ -36,8 +36,19 @@ npm run dev
 npm run build   # ra thư mục out/
 ```
 
-GitHub Actions tự build và deploy mỗi lần push lên `main`
-(`.github/workflows/deploy.yml`).
+## Deploy
+
+```bash
+npm run deploy
+```
+
+Build rồi đẩy thư mục `out/` lên nhánh `gh-pages`, sau đó yêu cầu GitHub Pages
+build lại. Pages phục vụ từ `gh-pages` chứ không phải `main`.
+
+Có sẵn `.github/workflows/deploy.yml` làm đúng việc này bằng GitHub Actions,
+nhưng Actions hiện không chạy được trên tài khoản (`your account is locked due
+to a billing issue`). Khi billing được gỡ, đổi Pages source về
+`build_type=workflow` là dùng lại được workflow và bỏ script thủ công.
 
 ## Kiểm tra sơ đồ
 
