@@ -49,6 +49,20 @@ export default function Tracking() {
             </Tag>
           ))}
         </div>
+        <Note tone="info" title="Còn hai kênh event khác, không nằm trong 12 cái này">
+          <p>
+            <b>Firebase Analytics.</b> <C>AppUtils.sendEvent</C> bắn thẳng sang
+            Firebase, không qua DataBuckets. Đây là nơi <C>cmp_success</C> và{" "}
+            <C>cmp_error</C> đi. Nó còn tự bắn thêm một bản{" "}
+            <C>first_&lt;event&gt;</C> cho lần đầu tiên của mỗi event.
+          </p>
+          <p>
+            <b>SDK tự bắn.</b> <C>databuckets_event_tracker</C> tự gửi{" "}
+            <C>first_open</C> và <C>session_start</C>. Kho dữ liệu vì thế có
+            nhiều hơn 12 event mà app khai báo.
+          </p>
+        </Note>
+
         <Note tone="warn" title="Nhóm ad rỗng">
           <p>
             <C>EventGroup.ad</C> khai báo danh sách rỗng và <C>AdPlacement</C>{" "}
@@ -71,7 +85,15 @@ export default function Tracking() {
         />
         <Facts
           rows={[
-            ["Định danh", <><C>userId</C> · uuid v4 lưu SharedPreferences</>],
+            ["Định danh", <><C>userId</C> · uuid v4 lưu SharedPreferences; SDK thêm <C>user_pseudo_id</C></>],
+            [
+              "SDK tự gắn",
+              <>
+                <C>install_day</C> · <C>retention_day</C> · <C>retention_hour</C> ·{" "}
+                <C>retention_minute</C> · <C>session_id</C> · <C>session_number</C> ·{" "}
+                <C>session_progress</C> · <C>event_date</C> · <C>event_local_hour</C>
+              </>,
+            ],
             ["Bối cảnh", <><C>connectionType</C> · <C>activeDay</C> · <C>languageSelected</C> · <C>isIAPUser</C></>],
             [
               "Quy nguồn",
@@ -83,6 +105,14 @@ export default function Tracking() {
             [
               "Khi Adjust không trả về",
               <>cả 5 trường thành <C>&quot;Unattributed&quot;</C>; nếu network là organic thì trường thiếu điền bằng chính tên network</>,
+            ],
+            [
+              "Thực tế hiện nay",
+              <>
+                <b>luôn là <C>&quot;Unattributed&quot;</C></b> — Adjust chưa được
+                đăng ký <C>attributionCallback</C> và <C>handleAttribution</C>{" "}
+                không có caller nào
+              </>,
             ],
           ]}
         />

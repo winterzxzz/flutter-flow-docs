@@ -55,13 +55,13 @@ export default function Iaa() {
             </>],
             ["Native", "có", <>timer <C>ad_refresh_time</C></>, "không"],
             ["Banner", "không · 1 unit", "AdMob tự refresh phía server", "không"],
-            ["Rewarded", "không", "không", "không"],
+            ["Rewarded", "có", "không", "không"],
           ]}
         />
         <Note tone="info" title="Xem chi tiết từng cơ chế">
           <p>
-            Trang <b>AdMob chi tiết</b> mô tả đầy đủ: số lần thử lại, timeout,
-            điều kiện hết hạn, và thứ tự waterfall.
+            Trang <b>AdMob chi tiết</b> mô tả số lần thử lại, timeout, điều kiện
+            hết hạn và thứ tự waterfall cho cả năm format.
           </p>
         </Note>
       </Section>

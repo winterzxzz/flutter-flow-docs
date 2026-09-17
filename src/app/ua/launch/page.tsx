@@ -51,14 +51,15 @@ export default function Launch() {
 
       <Section title="Remote Config là công cụ của giai đoạn soft launch">
         <Mermaid
-          caption="Đổi tần suất và vị trí ad mà không cần build lại là điều kiện để test kiếm tiền nhanh"
+          caption="Với một khoá phẳng, đây là so sánh trước/sau theo thời gian — KHÔNG phải A/B test"
           chart={`flowchart TB
   A["Giả thuyết: ad dày quá làm rơi retention"] --> B["Đổi ad_show_interval<br/>trên Firebase console"]
   B --> C["Publish"]
   C --> D["User nhận sau tối đa 1 giờ<br/>và từ lần mở app kế tiếp"]
-  D --> E{"So retention hai nhóm"}
+  D --> E{"So cohort cài TRƯỚC<br/>với cohort cài SAU"}
   E -->|khá hơn| F["giữ giá trị mới"]
-  E -->|xấu đi| G["trả lại giá trị cũ"]`}
+  E -->|xấu đi| G["trả lại giá trị cũ"]
+  E --> H["Nhiễu: mùa vụ, phiên bản,<br/>thay đổi nguồn traffic"]`}
         />
         <Facts
           rows={[
@@ -79,11 +80,14 @@ export default function Launch() {
 
         <Note tone="warn" title="Hai hạn chế cản việc test theo giai đoạn">
           <p>
-            <b>Chưa dùng Firebase Remote Config conditions.</b> Hiện chỉ một
-            khoá phẳng cho mọi người dùng. Muốn Tier 3 chịu ad dày hơn Tier 1
-            thì phải tạo điều kiện theo quốc gia trên console và tách giá trị
-            theo điều kiện — cấu trúc một khoá JSON hiện tại làm được, nhưng
-            chưa ai đặt điều kiện.
+            <b>Chưa dùng Firebase Remote Config conditions, nên chưa A/B test được.</b>{" "}
+            Một khoá phẳng nghĩa là mọi người dùng nhận cùng giá trị tại cùng
+            thời điểm — không tồn tại hai nhóm song song để so. Thứ bạn làm được
+            chỉ là so trước/sau theo thời gian, và kết quả bị nhiễu bởi mùa vụ,
+            phiên bản app và thay đổi nguồn traffic. Muốn test thật thì tạo
+            condition trên console (theo quốc gia, hoặc theo phần trăm người
+            dùng) rồi tách giá trị theo condition; cấu trúc một khoá JSON hiện
+            tại không cần đổi.
           </p>
           <p>
             <b>Không đo được tác động lên doanh thu ad.</b> Đổi{" "}
@@ -133,8 +137,13 @@ export default function Launch() {
             [
               "Retention theo cohort",
               <>
-                cần <C>install_day</C> trong common properties
+                <C>install_day</C> và <C>retention_day</C> do SDK gắn sẵn
               </>,
+              "Sẵn sàng",
+            ],
+            [
+              "So sánh hiệu quả giữa các thị trường hoặc campaign",
+              "cần attribution chảy về app",
               "Chưa có",
             ],
           ]}

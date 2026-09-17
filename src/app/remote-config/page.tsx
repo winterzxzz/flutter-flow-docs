@@ -30,7 +30,7 @@ const SCHEMA = `{
         "ad_units": ["<unit>"],
         "is_ad_enabled": true,
         "ad_size": "full",
-        "ad_refresh_time": 0,
+        "ad_refresh_time": 30000,
         "is_auto_reload": true,
         "ctr_position": "bottom"
       }
@@ -175,9 +175,37 @@ export default function RemoteConfig() {
             ["Không có mạng", "return sớm, giữ bundled default", <C key="1">loading_finish · no_internet</C>],
             ["remoteConfig null", "log cảnh báo, giữ bundled default", <C key="2">loading_finish · server_error</C>],
             ["Exception khi fetch", "debugPrint rồi đi tiếp", <C key="3">loading_finish · server_error</C>],
-            ["JSON sai schema", "catch trong setAdConfigs, giữ config cũ", "không có event nào"],
+            [
+              "JSON sai schema",
+              <>
+                <C>catch</C> trong <C>setAdConfigs</C>, giữ nguyên{" "}
+                <C>_adConfigs</C> đang có — ở lần mở app lạnh đó chính là bundled
+                default, không phải config remote lần trước
+              </>,
+              <>chỉ <C>logE</C> tại máy, không event, không Crashlytics</>,
+            ],
           ]}
         />
+      </Section>
+
+      <Section title="Cache local đang hỏng">
+        <Mermaid
+          caption="Đường ghi chạy tốt, đường đọc bị cắt"
+          chart={`flowchart LR
+  A["setAdConfigs()"] --> B["_cacheAdConfigs()"]
+  B --> C["SharedPreferences<br/>KEY_ADMOB_CONFIGS"]
+  C -.->|"dòng đọc bị comment"| D["initialize()"]
+  D --> E["luôn dùng bundled default"]
+  style C stroke-dasharray: 4 4`}
+        />
+        <Note tone="warn" title="Mỗi lần mở app lạnh đều bắt đầu từ config viết cứng">
+          <p>
+            <C>_cacheAdConfigs</C> ghi JSON vào <C>KEY_ADMOB_CONFIGS</C> sau mỗi
+            lần parse, nhưng dòng đọc trong <C>initialize()</C> đang bị comment.
+            Config remote của phiên trước không được tận dụng, và mọi quảng cáo
+            preload trước splash đều chạy bằng giá trị bundled.
+          </p>
+        </Note>
       </Section>
 
       <Section title="Cách đổi config an toàn">

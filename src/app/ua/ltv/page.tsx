@@ -15,12 +15,14 @@ export default function Ltv() {
 
       <Section title="Hai cách tính, chọn theo độ trưởng thành">
         <Mermaid
-          caption="Bắt đầu bằng cách nhanh, chuyển sang cohort khi đã có dữ liệu thật"
+          caption="Chưa ra mắt thì không có ARPDAU để mà nhân — phải mượn số của app tương tự"
           chart={`flowchart TB
-  Q{"App đã ra mắt<br/>và có dữ liệu chưa ?"}
-  Q -->|chưa| A["Cách nhanh<br/>LTV = ARPDAU × số ngày sống trung bình"]
-  Q -->|rồi| B["Cách cohort<br/>doanh thu tích luỹ theo nhóm ngày cài"]
-  A --> A1["Ưu: tính được ngay"]
+  Q{"App đã ra mắt chưa ?"}
+  Q -->|chưa| Z["Mượn dữ liệu lịch sử<br/>của app tương tự<br/>ước tính retention và doanh thu"]
+  Z --> Z1["Thận trọng: đặc thù riêng<br/>có thể làm hành vi khác hẳn"]
+  Q -->|rồi| D{"Dữ liệu đã đủ dày chưa ?"}
+  D -->|"mới, còn mỏng"| A["Cách nhanh<br/>LTV = ARPDAU × số ngày sống trung bình"]
+  D -->|"đã đủ"| B["Cách cohort<br/>doanh thu tích luỹ theo nhóm ngày cài"]
   A --> A2["Nhược: giả định mọi user như nhau<br/>bỏ qua churn và biến thiên"]
   B --> B1["Chia cohort D1 D7 D15 D30 D90"]
   B1 --> B2["Cộng doanh thu tích luỹ từng mốc"]
@@ -40,6 +42,10 @@ export default function Ltv() {
               "100 người cài cùng ngày, tới D30 tạo ra 500$ → LTV D30 = 5$/người",
             ],
             [
+              "Khi chưa ra mắt",
+              "không có DAU nên không có ARPDAU. Dùng số liệu lịch sử của app cùng thể loại để ước tính retention và doanh thu, và ghi rõ đó là giả định.",
+            ],
+            [
               "Nguồn doanh thu phải cộng đủ",
               "IAP + quảng cáo + subscription. Thiếu một nguồn là LTV thấp giả.",
             ],
@@ -53,95 +59,85 @@ export default function Ltv() {
 
       <Section title="Code của bạn tính được tới đâu">
         <Mermaid
-          caption="Ba mảnh cần có để dựng một cohort; code mới có một mảnh rưỡi"
+          caption="Hai mảnh đầu SDK đã lo; chỉ mảnh doanh thu là thiếu một nửa"
           chart={`flowchart LR
   subgraph need["Cần cho cohort"]
     N1["mốc gốc: ngày cài"]
-    N2["mốc hiện tại: ngày hoạt động"]
+    N2["số ngày kể từ khi cài"]
     N3["doanh thu tích luỹ"]
   end
-  subgraph have["Code đang có"]
-    H1["install_day<br/>CHỈ trong iap_verify"]
-    H2["activeDay<br/>trong UserProperties"]
-    H3["iap_purchase_success<br/>không có ad revenue"]
+  subgraph have["Thực tế"]
+    H1["install_day<br/>SDK tự gắn mọi event"]
+    H2["retention_day<br/>SDK tự tính mọi event"]
+    H3["iap_purchase_success có<br/>ad revenue KHÔNG có"]
   end
-  N1 -.-> H1
+  N1 --> H1
   N2 --> H2
   N3 -.-> H3
-  style H1 stroke-dasharray: 4 4
   style H3 stroke-dasharray: 4 4`}
         />
 
         <Grid
-          head={["Mảnh dữ liệu", "Ở đâu trong code", "Vấn đề"]}
+          head={["Mảnh dữ liệu", "Nguồn", "Trạng thái"]}
           rows={[
             [
               <C key="a">install_day</C>,
-              <>
-                đọc từ SharedPreferences trong <C>verifyIAP</C>, đóng gói vào{" "}
-                <C>IAPVerifyParam</C>
-              </>,
-              "chỉ gửi tới server verify, không gắn vào event DataBuckets",
+              "SDK DataBuckets stamp vào mọi event",
+              "Sẵn sàng",
             ],
             [
-              <C key="b">install_timestamp</C>,
+              <C key="b">retention_day</C>,
               <>
-                key <C>install_time_millis</C>, cùng chỗ với trên
+                SDK tự tính từ <C>install_day</C> và timestamp của event
               </>,
-              "cùng vấn đề",
+              "Sẵn sàng",
             ],
             [
-              <C key="c">retention_day</C>,
-              <>
-                tính bằng <C>calculateRetentionDate</C> từ <C>install_day</C>{" "}
-                dạng YYYYMMDD
-              </>,
-              "logic đã có sẵn, chỉ thiếu đường ra",
-            ],
-            [
-              <C key="d">activeDay</C>,
-              <>
-                trường của <C>UserProperties</C>, gắn vào mọi event
-              </>,
-              "có nhưng không đủ một mình để dựng cohort",
+              <C key="c">session_id · session_number</C>,
+              "SDK stamp vào mọi event",
+              "Sẵn sàng — dùng để tính DAU",
             ],
             [
               "doanh thu IAP",
               <C key="e">iap_purchase_success</C>,
-              "có",
+              "Có, nhưng thiếu transaction id",
             ],
             [
               "doanh thu IAA",
               <>
                 <C>onPaidEvent</C> → Adjust
               </>,
-              "không có trong DataBuckets → LTV thiếu hẳn một nguồn",
+              "Không có trong DataBuckets",
+            ],
+            [
+              <C key="d">activeDay</C> ,
+              <>
+                trường tự viết trong <C>UserProperties</C>
+              </>,
+              "Có nhưng sai — xem cảnh báo dưới",
             ],
           ]}
         />
 
-        <Note tone="warn" title="Hệ quả thực tế">
+        <Note tone="good" title="Cohort làm được ngay hôm nay">
           <p>
-            LTV tính từ DataBuckets hiện tại sẽ <b>thấp hơn thực tế</b> vì thiếu
-            toàn bộ doanh thu quảng cáo. Với một app sống bằng IAA, con số đó
+            Không cần sửa code. <C>install_day</C> và <C>retention_day</C> đã
+            nằm trên từng event, nên nhóm cohort theo ngày cài và vẽ doanh thu
+            tích luỹ D1/D7/D30 là truy vấn thuần trên kho dữ liệu.
+          </p>
+        </Note>
+
+        <Note tone="warn" title="Nhưng LTV vẫn lệch thấp, và activeDay thì sai">
+          <p>
+            <b>Thiếu nửa doanh thu.</b> Không có ad revenue trong DataBuckets
+            nên LTV tính ra thấp hơn thực tế. Với app sống bằng IAA, con số đó
             gần như vô nghĩa.
           </p>
           <p>
-            Và vì <C>install_day</C> không đi kèm event, không thể nhóm cohort
-            trực tiếp trong DataBuckets — phải join ngược qua{" "}
-            <C>user_id</C> với dữ liệu của server verify.
-          </p>
-        </Note>
-      </Section>
-
-      <Section title="Sửa nhỏ, lợi lớn">
-        <Note tone="good" title="Thêm hai trường vào UserProperties">
-          <p>
-            <C>install_day</C> và <C>retention_day</C> đã được tính sẵn trong{" "}
-            <C>BucketTrackingUtils</C>. Đưa chúng vào{" "}
-            <C>updateUserPropertiesEvent</C> là mọi event đều mang theo mốc
-            cohort, và phân tích cohort làm được ngay trong DataBuckets mà không
-            cần join.
+            <b><C>activeDay</C> đếm ngược logic.</b> Nó chỉ tăng khi lần mở app
+            này <i>cùng ngày</i> với lần trước, và không bao giờ tăng khi sang
+            ngày mới. Đây không phải số ngày hoạt động — mọi phân khúc dựng trên
+            nó đều sai. Dùng <C>retention_day</C> của SDK thay thế.
           </p>
         </Note>
       </Section>
@@ -155,8 +151,8 @@ export default function Ltv() {
               "người ở lại lâu tạo nhiều doanh thu hơn, nên cải thiện retention là cách nâng LTV rẻ nhất",
             ],
             [
-              "LTV đặt trần cho CPI",
-              "CPI phải thấp hơn LTV trong kỳ hoàn vốn đã chọn",
+              "Trần cho CPI lấy theo ARPU, không theo LTV",
+              "CPI phải thấp hơn ARPU tích luỹ tại mốc hoàn vốn đã chọn. LTV trọn đời luôn lớn hơn, nên lấy nó làm trần là trả trước cho doanh thu chưa tới.",
             ],
           ]}
         />

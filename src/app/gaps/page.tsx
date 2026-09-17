@@ -15,6 +15,59 @@ type Gap = {
 const GAPS: Gap[] = [
   {
     sev: "Cao",
+    title: "Attribution chưa bao giờ được nối",
+    body: (
+      <>
+        <C>AdjustConfig</C> không gán <C>attributionCallback</C>, và{" "}
+        <C>handleAttribution</C> không có caller nào trong toàn repo. Năm trường{" "}
+        <C>ua_network</C>, <C>ua_campaign</C>, <C>ua_adgroup</C>,{" "}
+        <C>ua_creative</C>, <C>ua_tracker_name</C> vì thế giữ nguyên giá trị khởi
+        tạo <C>&quot;Unattributed&quot;</C> suốt vòng đời app. Mọi phân tích theo
+        campaign hay creative đều bất khả thi.
+      </>
+    ),
+    src: "lib · adjust_sdk.dart · base · bucket_tracking_utils.dart handleAttribution",
+  },
+  {
+    sev: "Cao",
+    title: "activeDay đếm ngược logic",
+    body: (
+      <>
+        Bộ đếm chỉ tăng khi lần mở app này <i>cùng ngày</i> với lần trước, và
+        không bao giờ tăng khi sang ngày mới. Nó đếm số lần mở lại trong ngày
+        chứ không phải số ngày hoạt động. Mọi phân khúc dựng trên{" "}
+        <C>active_day</C> hiện nay đều sai.
+      </>
+    ),
+    src: "app_config_cubit.dart · nhánh so sánh lastAccess với now",
+  },
+  {
+    sev: "TB",
+    title: "uaTrackerName bị rơi trong copyWith",
+    body: (
+      <>
+        <C>updateUserPropertiesEvent</C> khai báo tham số <C>uaTrackerName</C>{" "}
+        nhưng lời gọi <C>copyWith</C> ngay dưới không truyền nó, nên giá trị bị
+        bỏ lặng lẽ. Sẽ cắn ngay khi attribution được nối.
+      </>
+    ),
+    src: "bucket_tracking_utils.dart · updateUserPropertiesEvent",
+  },
+  {
+    sev: "TB",
+    title: "iap_purchase_success không có transaction id",
+    body: (
+      <>
+        Payload có <C>pack_name</C>, <C>period</C>, <C>price</C>,{" "}
+        <C>currency</C> nhưng không có mã giao dịch, nên không khử được trùng lặp
+        và không đảo ngược được doanh thu khi hoàn tiền. <C>price</C> cũng là
+        tiền tệ bản địa, chưa quy đổi.
+      </>
+    ),
+    src: "iap_purchase_success_param.dart",
+  },
+  {
+    sev: "Cao",
     title: "IAA không có event nào vào DataBuckets",
     body: (
       <>
@@ -36,7 +89,7 @@ const GAPS: Gap[] = [
         default.
       </>
     ),
-    src: "firebase_config_manager.dart:26-31",
+    src: "firebase_config_manager.dart:26-29",
   },
   {
     sev: "TB",
@@ -55,9 +108,10 @@ const GAPS: Gap[] = [
     title: "JSON sai schema thì im lặng",
     body: (
       <>
-        <C>setAdConfigs</C> nuốt mọi exception, chỉ <C>logE</C>. Sai schema trên
-        console thì app giữ config cũ, không crash, không Crashlytics, không
-        event — rất khó phát hiện từ xa.
+        <C>setAdConfigs</C> bắt mọi exception và chỉ <C>logE</C> tại máy. Sai
+        schema trên console thì app giữ nguyên config đang có — ở lần mở app
+        lạnh chính là bundled default — mà không crash, không Crashlytics, không
+        event. Hỏng từ xa gần như không thể phát hiện.
       </>
     ),
     src: "firebase_config_manager.dart:73-75",

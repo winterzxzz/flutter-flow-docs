@@ -15,13 +15,13 @@ export default function Cpi() {
 
       <Section title="Quan hệ ba chỉ số">
         <Mermaid
-          caption="ROAS = doanh thu ÷ chi phí; cả hai vế đều phải đo được"
+          caption="ROAS = doanh thu ÷ chi phí. Hoà vốn ở mức 1 (tức 100%); tỉ số này không bao giờ âm"
           chart={`flowchart LR
   A["ARPU<br/>doanh thu / user"] --> R{"ROAS"}
   B["CPI<br/>chi phí / install"] --> R
-  R -->|dương| S["scale · tăng ngân sách"]
-  R -->|trung tính| O["tối ưu creative, targeting"]
-  R -->|âm| X["dừng chiến dịch"]`}
+  R -->|"> 1 · trên 100%"| S["có lãi · scale"]
+  R -->|"= 1 · hoà vốn"| O["tối ưu creative, targeting"]
+  R -->|"< 1 · dưới 100%"| X["lỗ · dừng hoặc sửa"]`}
         />
         <Note tone="info" title="Thị trường CPI cao thường có ARPU cao">
           <p>
@@ -46,7 +46,11 @@ export default function Cpi() {
           rows={[
             [
               "Cách tính CPI tối đa",
-              "lấy LTV dự kiến tại mốc hoàn vốn, trừ biên an toàn, ra trần CPI được phép trả",
+              "lấy ARPU tích luỹ dự kiến tại mốc hoàn vốn; CPI phải nằm dưới con số đó",
+            ],
+            [
+              "ARPU và LTV khác nhau chỗ nào",
+              "ARPU là doanh thu trung bình trên đầu người trong một khoảng thời gian; LTV là phần tích luỹ tới hết vòng đời. Đặt trần CPI theo ARPU tại mốc hoàn vốn, không theo LTV trọn đời — lấy LTV sẽ ra trần cao hơn nhiều và khiến bạn trả trước cho khoản doanh thu chưa tới.",
             ],
             [
               "Sai lầm hay gặp",
@@ -71,11 +75,6 @@ export default function Cpi() {
               "Giai đoạn tăng trưởng có lãi",
               "ROAS cao",
               "scale chiến dịch ROAS thấp chỉ đốt nguồn lực",
-            ],
-            [
-              "Ngân sách hữu hạn",
-              "ROAS cao",
-              "mỗi đồng phải quay về, không có chỗ cho khối lượng rỗng",
             ],
           ]}
         />
@@ -107,27 +106,37 @@ export default function Cpi() {
   end
   subgraph inapp["Trong app"]
     D1["iap_purchase_success<br/>doanh thu IAP"]
-    D2["ua_campaign, ua_creative<br/>gắn vào mọi event"]
+    D2["ua_campaign, ua_creative<br/>luôn = Unattributed"]
     D3["onPaidEvent → Adjust<br/>doanh thu ad"]
   end
   C3 --> ROAS{"ROAS theo campaign"}
   D1 --> ROAS
-  D2 --> ROAS
+  D2 -.->|attribution chưa nối| ROAS
   D3 -.->|không cùng hệ| ROAS
+  style D2 stroke-dasharray: 4 4
   style D3 stroke-dasharray: 4 4`}
         />
-        <Note tone="good" title="Làm được ngay: ROAS theo creative cho phần IAP">
+        <Note tone="warn" title="Chưa làm được: ROAS theo creative hay campaign">
           <p>
-            Vì <C>ua_creative</C> gắn vào mọi event, bạn có thể nhóm{" "}
-            <C>iap_purchase_success</C> theo creative và chia cho chi phí của
-            chính creative đó lấy từ mạng quảng cáo. Không cần sửa code.
+            Năm trường <C>ua_*</C> có mặt trên mọi event nhưng giá trị luôn là{" "}
+            <C>&quot;Unattributed&quot;</C>: Adjust không được đăng ký callback
+            và hàm nhận attribution trong app không có nơi nào gọi. Không thể
+            tách doanh thu theo nguồn cho tới khi nối xong.
           </p>
         </Note>
         <Note tone="warn" title="Chưa làm được: ROAS tổng">
           <p>
-            Thiếu doanh thu IAA trong cùng hệ, nên ROAS tính ra sẽ thấp giả với
-            app sống bằng quảng cáo. Với app chủ yếu IAA, con số này có thể làm
-            bạn tắt nhầm một chiến dịch đang có lãi.
+            Thiếu doanh thu IAA trong cùng hệ, nên ROAS tính ra sẽ thấp giả. Với
+            app sống bằng quảng cáo, con số này có thể làm bạn tắt nhầm một
+            chiến dịch đang có lãi.
+          </p>
+        </Note>
+        <Note tone="good" title="Làm được ngay: ROAS ở mức tổng theo cohort">
+          <p>
+            <C>install_day</C> và <C>retention_day</C> do SDK gắn sẵn, nên so
+            doanh thu IAP tích luỹ của một cohort với tổng chi tiêu của đúng
+            khoảng ngày đó là làm được, chỉ là không bóc tách được xuống từng
+            campaign.
           </p>
         </Note>
       </Section>

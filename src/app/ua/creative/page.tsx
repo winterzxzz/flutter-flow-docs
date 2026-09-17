@@ -88,11 +88,12 @@ export default function Creative() {
 
       <Section title="Nối creative với hành vi trong app">
         <Mermaid
-          caption="Đây là phần code đã sẵn sàng và đang bị bỏ phí"
+          caption="Đường ống đã dựng đủ, nhưng mắt xích đầu tiên chưa cắm điện"
           chart={`flowchart LR
   A["Creative X trên mạng quảng cáo"] --> B["Cài đặt"]
   B --> C["Adjust gán attribution"]
-  C --> D["ua_creative = X<br/>gắn vào mọi event"]
+  C -.->|"callback CHƯA nối"| D["ua_creative = X<br/>hiện luôn là Unattributed"]
+  style C stroke-dasharray: 4 4
   D --> E1["screen_show splash → home<br/>có đi hết onboarding không"]
   D --> E2["iap_show → iap_click<br/>có xem paywall không"]
   D --> E3["iap_purchase_success<br/>có trả tiền không"]
@@ -101,45 +102,52 @@ export default function Creative() {
   E3 --> F`}
         />
         <Grid
-          head={["Câu hỏi về creative", "Trả lời được chưa", "Bằng cách nào"]}
+          head={["Câu hỏi về creative", "Trả lời được chưa", "Chặn ở đâu"]}
           rows={[
             [
               "Creative nào mang về người mua IAP",
-              "Được",
+              "Chưa",
               <>
-                nhóm <C>iap_purchase_success</C> theo <C>ua_creative</C>
+                <C>ua_creative</C> luôn là <C>&quot;Unattributed&quot;</C>
               </>,
             ],
             [
               "Creative nào mang về người bỏ ngay ở splash",
-              "Được",
-              <>
-                <C>screen_exit</C> + <C>duration_prev_screen</C> theo creative
-              </>,
+              "Chưa",
+              "cùng lý do — không tách được nguồn",
             ],
             [
               "Creative nào hứa sai so với FTUE",
-              "Gần được",
-              "tỉ lệ rơi ở màn đầu cao bất thường so với creative khác",
+              "Chưa",
+              "cùng lý do",
             ],
             [
               "Creative nào mang về người xem nhiều quảng cáo",
               "Chưa",
-              "không có event ad nào",
+              "thiếu cả attribution lẫn event ad",
             ],
             [
               "Creative nào cho eCPM cao",
               "Chưa",
-              "doanh thu ad không gắn creative trong cùng hệ",
+              "thiếu cả ba: attribution, event ad, doanh thu ad trong cùng hệ",
+            ],
+            [
+              "Funnel onboarding và paywall ở mức tổng",
+              "Được",
+              <>
+                <C>screen_show</C>, <C>screen_exit</C>, <C>iap_*</C> đều hoạt
+                động, chỉ không bóc tách theo nguồn
+              </>,
             ],
           ]}
         />
-        <Note tone="warn" title="Với app sống bằng IAA, đây là lỗ hổng lớn nhất">
+        <Note tone="warn" title="Toàn bộ chương này chưa chạy được trên dữ liệu hiện tại">
           <p>
-            Toàn bộ chương creative giả định bạn đo được doanh thu trên đầu
-            người theo creative. App của bạn kiếm tiền chủ yếu từ quảng cáo,
-            nhưng đúng nửa đó lại không có event nào — nên xếp hạng creative hiện
-            tại chỉ phản ánh được nhóm người mua IAP, vốn là thiểu số.
+            Chương 9 đến 11 đều giả định bạn so sánh được hiệu quả giữa các
+            creative. Điều kiện tối thiểu cho việc đó là attribution chảy về
+            app — hiện chưa. Trước khi đầu tư sản xuất nhiều biến thể creative
+            để A/B test, hãy nối attribution, nếu không bạn sẽ không đọc được
+            kết quả của chính thử nghiệm đó.
           </p>
         </Note>
       </Section>

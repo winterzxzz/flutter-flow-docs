@@ -24,6 +24,7 @@ export const GROUPS: NavGroup[] = [
       { href: "/ua/creative", label: "Ad creative", hint: "làm và đo" },
       { href: "/ua/diagnose", label: "Chẩn đoán chỉ số", hint: "5 tổ hợp" },
       { href: "/ua/instrumentation", label: "Kế hoạch đo", hint: "cần vá gì" },
+      { href: "/ua/glossary", label: "Thuật ngữ", hint: "ARPU, IPM, eCPM…" },
     ],
   },
   {

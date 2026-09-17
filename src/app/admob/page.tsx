@@ -98,6 +98,17 @@ export default function Admob() {
           ]}
         />
 
+        <Note tone="good" title="Tự nạp lại ngay sau khi đóng">
+          <p>
+            <C>FullAdUtils.initInterstitial</C> gọi cứng{" "}
+            <C>setAutoReload(true)</C>. Khi quảng cáo vừa đóng{" "}
+            (<C>onAdDismissedFullScreenContent</C>), một lệnh load mới chạy ngay
+            nền. Nhờ vậy lần hiện kế tiếp gần như không phải chờ. Đây là lý do
+            đồng hồ giãn cách mới là thứ quyết định nhịp, không phải thời gian
+            load.
+          </p>
+        </Note>
+
         <Note tone="warn" title="Interstitial không có waterfall">
           <p>
             Mỗi <C>InterstitialAdmob</C> giữ đúng một <C>adUnit</C>. Mảng{" "}
@@ -160,7 +171,9 @@ export default function Admob() {
   B -->|false| C["showAdIfAvailable()"]
   C --> D{"_isShowingAd ?"}
   D -->|true| Z
-  D -->|false| E{"isAdAvailable()"}
+  D --> DI{"interstitial<br/>đang hiện ?"}
+  DI -->|true| Z
+  DI -->|false| E{"isAdAvailable()"}
   E --> F["_isAdValid()<br/>ad != null và chưa quá 4 giờ"]
   E --> G["_isReadyShowAd()<br/>now - lastShow ≥ timeBetween2Ad"]
   F --> H{"cả hai đúng ?"}
@@ -197,6 +210,14 @@ export default function Admob() {
               "bật thì dùng native full thay cho open ad",
             ],
             ["Waterfall", <>có, duyệt <C>adUnits[i]</C> giống native</>],
+            [
+              "Bị interstitial chặn",
+              <>
+                <C>showOpenAdIfAvailable</C> thoát sớm khi một interstitial đang
+                hiện. Đây là cổng toàn cục, tách biệt với cờ{" "}
+                <C>_isShowingAd</C> của chính open ad
+              </>,
+            ],
           ]}
         />
       </Section>
@@ -213,6 +234,13 @@ export default function Admob() {
             ],
             ["Waterfall", "không · đúng một unit"],
             [
+              "Thử lại",
+              <>
+                có — đếm bằng <C>_numNativeLoadAttempts</C> trên cùng một unit,
+                không chuyển sang unit khác
+              </>,
+            ],
+            [
               "Làm mới",
               "do AdMob làm phía server theo thiết lập trên console, code không có timer",
             ],
@@ -225,6 +253,60 @@ export default function Admob() {
             ],
           ]}
         />
+      </Section>
+
+      <Section title="Rewarded">
+        <Facts
+          rows={[
+            [
+              "Waterfall",
+              <>
+                có — <C>RewardedAdmob</C> nhận <C>List&lt;String&gt; adUnits</C>{" "}
+                và duyệt <C>adUnits[_adUnitCount]</C>, tăng chỉ số khi load hỏng
+              </>,
+            ],
+            ["Tự load lại", "không — phải gọi lại thủ công sau khi dùng"],
+            ["Cổng thời gian", <>không chịu <C>InterstitialAdmobTimer</C></>],
+            [
+              "Nguồn unit",
+              <>
+                <C>reward_ad.ad_units</C> trong Remote Config, là nhánh{" "}
+                <b>tuỳ chọn</b> — thiếu nhánh này thì không có rewarded config
+                nào được tạo
+              </>,
+            ],
+          ]}
+        />
+      </Section>
+
+      <Section title="Giá trị nào thắng khi có nhiều mặc định">
+        <Mermaid
+          caption="Bốn nơi cùng khai báo giãn cách; chỉ nơi cuối cùng ghi là có hiệu lực"
+          chart={`flowchart TB
+  A["Remote Config<br/>open_ad.ad_show_interval"] --> B["AppOpenAdSetup<br/>configAdmob(timeBetween2Ad: …)"]
+  C["AdmobConstant.TIME_BETWEEN_OPENAD<br/>40000 — chỉ khi config null"] -.-> B
+  B --> D["AdmobConfigManager<br/>tham số mặc định 60000"]
+  D --> E["AppOpenAdManager.setTimeBetween2Ad"]
+  F["AppOpenAdManager.init(openAdConfig)<br/>timeBetween2Ad = config.adShowInterval"] --> G["GIÁ TRỊ CUỐI CÙNG"]
+  E -.->|bị ghi đè ngay sau đó| G`}
+        />
+        <Note tone="warn" title="Thứ tự ghi quyết định, không phải thứ tự khai báo">
+          <p>
+            <C>AppOpenAdSetup.initialize</C> gọi <C>configAdmob(...)</C> trước,
+            rồi <b>ngay sau đó</b> gọi <C>AppOpenAdManager.init(openAdConfig!)</C>
+            , và hàm này gán lại <C>timeBetween2Ad = openAdConfig.adShowInterval</C>
+            . Vì vậy giá trị Remote Config luôn thắng, còn{" "}
+            <C>AdmobConstant.TIME_BETWEEN_OPENAD</C> chỉ có tác dụng ở nhánh
+            fallback của lần gọi đầu — vốn bị ghi đè.
+          </p>
+          <p>
+            Bốn con số cùng mang nghĩa &ldquo;giãn cách open ad&rdquo;:{" "}
+            <C>60000</C> (tham số mặc định của lib), <C>30000</C> (
+            <C>AdConfigConstants.openAdShowInterval</C>, dùng khi JSON thiếu
+            trường), <C>40000</C> (<C>AdmobConstant</C> của base), và giá trị
+            thật trong Remote Config. Đừng suy ra hành vi từ ba con số đầu.
+          </p>
+        </Note>
       </Section>
 
       <Section title="Ad unit khi chạy debug">
@@ -259,12 +341,12 @@ export default function Admob() {
 
       <Section title="CMP — xin đồng ý trước khi fetch">
         <Mermaid
-          caption="CMP chạy xong mới tới Remote Config, không đảo được"
+          caption="CMP chạy xong mới tới Remote Config. Hai event này đi Firebase Analytics, không nằm trong 12 event DataBuckets"
           chart={`flowchart LR
   A["Splash _handleCMP"] --> B["CmpHelper.initialize()"]
   B --> C{"FormError ?"}
-  C -->|có| D["event cmp_error"]
-  C -->|không| E["event cmp_success"]
+  C -->|có| D["cmp_error → Firebase Analytics"]
+  C -->|không| E["cmp_success → Firebase Analytics"]
   D --> F["fetch Remote Config"]
   E --> F
   F --> G["setupAdmob"]`}
