@@ -14,8 +14,9 @@ Xem online: https://winterzxzz.github.io/flutter-flow-docs/
 4. Luồng IAA — config trong base, vòng đời ad trong lib
 5. Cầu nối IAP ↔ IAA
 6. Luồng tracking — DataBuckets và Adjust
-7. Khoảng trống và rủi ro
-8. Bản đồ file
+7. Remote Config — khoá, ba tầng giá trị, thời điểm fetch, cách hỏng
+8. Khoảng trống và rủi ro
+9. Bản đồ file
 
 ## Chạy local
 

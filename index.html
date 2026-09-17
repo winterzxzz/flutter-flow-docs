@@ -18,6 +18,7 @@
     <li><a href="#iaa">Luồng IAA</a></li>
     <li><a href="#bridge">Cầu nối IAP ↔ IAA</a></li>
     <li><a href="#tracking">Luồng Tracking</a></li>
+    <li><a href="#remote">Remote Config</a></li>
     <li><a href="#gaps">Khoảng trống &amp; rủi ro</a></li>
     <li><a href="#map">Bản đồ file</a></li>
   </ol>
@@ -414,11 +415,160 @@
 </section>
 
 <!-- ============ 7 ============ -->
+<section id="remote">
+<h2><span class="num">07</span> Remote Config</h2>
+<p class="sub">Toàn bộ hành vi quảng cáo điều khiển từ xa bằng <b>đúng một khoá</b> Firebase Remote Config chứa một chuỗi JSON. Đổi trên console là đổi được ad unit, bật tắt từng format, giãn tần suất — không cần build lại app.</p>
+
+<h3>Khoá duy nhất</h3>
+<div class="chain">
+  <div class="node" style="border-left:3px solid var(--lib)"><div class="t">BASE_ADMOB_CONFIG</div><div class="d">FirebaseConstants.FBASE_ROOT + "_ADMOB_CONFIG"</div></div>
+  <div class="arr">=</div>
+  <div class="node"><div class="t">1 chuỗi JSON</div><div class="d">toàn bộ admob_config</div></div>
+</div>
+<p><code>FBASE_ROOT</code> hiện là <code>"BASE"</code>, có comment <code>TODO: setup Firebase Root</code> — mỗi app fork phải đổi tiền tố này, nếu không hai app khác nhau sẽ tranh cùng một khoá trên console.</p>
+
+<h3>Ba tầng giá trị</h3>
+<p>Một trường config có thể đến từ ba nguồn, ưu tiên từ trên xuống:</p>
+<div class="stack">
+  <div class="layer lib">
+    <div class="tag">1 · Remote</div>
+    <div class="body">
+      <div class="row">remoteConfig.getString(FBASE_ADMOB_CONFIG) — sau fetchAndActivate()</div>
+      <div class="note">Giá trị thật từ Firebase console. Chỉ có sau khi splash fetch xong.</div>
+    </div>
+  </div>
+  <div class="layer iaa">
+    <div class="tag">2 · Bundled</div>
+    <div class="body">
+      <div class="row">FirebaseAdmobConfig.config = jsonEncode(Platform.isIOS ? IOS_CONFIG : ANDROID_CONFIG)</div>
+      <div class="note">JSON viết cứng trong code, nạp vào SDK bằng <code>setDefaults()</code> lúc init. Hai bản riêng cho iOS và Android. Ad unit trong đó là <b>id test của Google</b>.</div>
+    </div>
+  </div>
+  <div class="layer iaa">
+    <div class="tag">3 · Per-field</div>
+    <div class="body">
+      <div class="row">AdConfigConstants — isAdEnabled=true · adShowInterval=30000 · openAdShowInterval=30000 · remainTime=3 · adRefreshTime=0</div>
+      <div class="note">Dùng khi một trường lẻ thiếu trong JSON. <code>AdConfig.fromJson</code> đọc <code>json["x"] ?? AdConfigConstants.x</code> cho từng trường.</div>
+    </div>
+  </div>
+</div>
+
+<h3>Đường đi theo thời gian</h3>
+<ol class="steps">
+  <li>
+    <div class="s-t">initFirebase() — main.dart:67 (chạy song song với storage và userId)</div>
+    <div class="s-d"><code>FirebaseProvider.initProvider</code> → <code>Firebase.initializeApp</code> → <code>setConfigSettings(...)</code> → <code>setDefaults(FirebaseConstants.defaultValue())</code>. Sau bước này SDK đã có bundled default trong tay, <b>chưa gọi mạng</b>.</div>
+  </li>
+  <li>
+    <div class="s-t">FirebaseConstantManager.initialize() — main.dart:85</div>
+    <div class="s-d">Parse <b>bundled default</b> thành <code>List&lt;AdConfig&gt;</code>. Tên hàm dễ gây hiểu nhầm: nó <b>không</b> đọc gì từ remote. Đây chỉ là config tạm để app có cái dùng ngay.</div>
+  </li>
+  <li>
+    <div class="s-t">setupPreloadNative() — main.dart:91</div>
+    <div class="s-d">Preload native ad bằng <b>config tạm</b> ở bước 2. Chạy trước khi fetch remote.</div>
+  </li>
+  <li>
+    <div class="s-t">Splash · _handleCMP() → CMP consent</div>
+    <div class="s-d">Xin consent GDPR trước, xong mới fetch. Kết quả bắn event <code>cmp_success</code> / <code>cmp_error</code> sang Firebase Analytics.</div>
+  </li>
+  <li class="par">
+    <div class="s-t">SplashRemoteConfigLoader.fetch() — lần gọi mạng duy nhất</div>
+    <div class="s-d">Kiểm tra online → <code>fetchAndActivate()</code> → <code>getString(FBASE_ADMOB_CONFIG)</code> → <code>setAdConfigs(json)</code>. Toàn bộ quá trình bọc trong cặp event <code>loading_start</code> / <code>loading_finish</code> với <code>resourceType: remoteConfig</code>.</div>
+  </li>
+  <li>
+    <div class="s-t">setAdConfigs() — parse và ghi đè</div>
+    <div class="s-d">Thay <code>_adConfigs</code> bằng danh sách mới, rồi ghi JSON vào SharedPreferences key <code>KEY_ADMOB_CONFIGS</code>.</div>
+  </li>
+  <li>
+    <div class="s-t">_setupAdmob() → SplashAdmobInitializer</div>
+    <div class="s-d">Đọc getter của manager để dựng ad thật: <code>interstitialConfig?.adUnits.lastOrNull</code>, <code>rewardedConfig?.adUnits</code>, duyệt <code>_fbM.adConfigs</code>, kiểm <code>includeNativeAd</code> và <code>openAdConfig?.isUseNativeAd</code>.</div>
+  </li>
+</ol>
+
+<h3>Hình dạng JSON</h3>
+<p>Một object <code>admob_config</code>, năm nhánh. Hai nhánh là object đơn, hai nhánh là mảng, một nhánh tuỳ chọn:</p>
+<table>
+<thead><tr><th>Nhánh</th><th>Kiểu</th><th>Trường riêng</th></tr></thead>
+<tbody>
+<tr><td><code>open_ad</code></td><td>object</td><td><code>ad_show_interval</code>, <code>is_use_interstitial_ad</code>, <code>is_use_native_ad</code>, <code>interstitial_ad_units</code></td></tr>
+<tr><td><code>interstitial_ad</code></td><td>object</td><td><code>ad_show_interval</code>, <code>include_native_ad</code>, <code>remain_time</code>, <code>native_ad_units</code></td></tr>
+<tr><td><code>native_ad</code></td><td><b>mảng</b></td><td><code>ad_size</code>, <code>ad_refresh_time</code>, <code>is_auto_reload</code>, <code>ctr_position</code></td></tr>
+<tr><td><code>banner_ad</code></td><td><b>mảng</b></td><td><code>ad_request_banner</code></td></tr>
+<tr><td><code>reward_ad</code></td><td>object · <b>tuỳ chọn</b></td><td>chỉ trường chung</td></tr>
+</tbody>
+</table>
+<p>Trường chung của mọi nhánh: <code>id</code>, <code>ad_units</code> (mảng, dùng làm thứ tự waterfall), <code>is_ad_enabled</code>.</p>
+
+<div class="box info">
+  <b>Năm nhánh bị làm phẳng thành một danh sách</b>
+  <p><code>setAdConfigs</code> gom tất cả thành <code>List&lt;AdConfig&gt;</code> duy nhất. Tra cứu về sau theo hai kiểu: theo <b>kiểu</b> (<code>interstitialConfig</code>, <code>openAdConfig</code>, <code>rewardedConfig</code> — lấy phần tử đầu khớp type) hoặc theo <b>id</b> (<code>getBannerAdConfig(id)</code>, <code>getNativeAdConfig(id)</code>). Vì vậy <code>id</code> trong JSON phải khớp chính xác id mà widget truyền vào, sai một ký tự là ad im lặng không hiện.</p>
+</div>
+
+<h3>Thiết lập cache của SDK</h3>
+<table>
+<thead><tr><th>Tham số</th><th>Release</th><th>Debug</th></tr></thead>
+<tbody>
+<tr><td><code>minimumFetchInterval</code></td><td><b>3600 giây</b> (1 giờ)</td><td>0 giây</td></tr>
+<tr><td><code>fetchTimeout</code></td><td colspan="2">15 giây (giá trị mặc định của tham số <code>timeOut</code>)</td></tr>
+</tbody>
+</table>
+<p>Nghĩa là ở bản release, sau một lần fetch thành công, SDK <b>không gọi mạng lại trong 1 giờ</b> dù app mở lại bao nhiêu lần. Đổi config trên console có thể mất tới một giờ mới tới máy người dùng đang hoạt động.</p>
+
+<h3>Khi fetch hỏng</h3>
+<p>Bốn nhánh hỏng, <b>tất cả đều giữ nguyên config đang có</b> và app vẫn chạy tiếp:</p>
+<table>
+<thead><tr><th>Tình huống</th><th>Xử lý</th><th>Event</th></tr></thead>
+<tbody>
+<tr><td>Không có mạng</td><td><code>return</code> sớm, giữ bundled default</td><td><code>loading_finish</code> · fail · <code>no_internet</code></td></tr>
+<tr><td><code>remoteConfig == null</code></td><td>log cảnh báo, giữ bundled default</td><td><code>loading_finish</code> · fail · <code>server_error</code></td></tr>
+<tr><td>Exception khi fetch</td><td><code>debugPrint</code>, đi tiếp</td><td><code>loading_finish</code> · fail · <code>server_error</code></td></tr>
+<tr><td>JSON sai schema</td><td><code>catch</code> trong <code>setAdConfigs</code>, giữ <code>_adConfigs</code> cũ</td><td><b>không có event nào</b></td></tr>
+</tbody>
+</table>
+
+<div class="box risk">
+  <b>Bốn điểm cần biết khi sửa Remote Config</b>
+  <p><b>Cache local ghi mà không đọc.</b> <code>_cacheAdConfigs</code> ghi JSON vào <code>KEY_ADMOB_CONFIGS</code> mỗi lần parse, nhưng dòng đọc lại trong <code>initialize()</code> đang <b>bị comment</b>. Biến <code>data</code> vì thế luôn <code>null</code>, luôn rơi về bundled default. Mở app lạnh lần thứ mười vẫn khởi động bằng config viết cứng chứ không phải config remote lần trước.</p>
+  <p><b>Preload native chạy trước khi fetch.</b> <code>main.dart:91</code> đứng trước splash. Native ad preload đầu tiên luôn dùng ad unit của bundled default. Đổi native ad unit trên console không ảnh hưởng lượt preload đó.</p>
+  <p><b>JSON sai thì im lặng.</b> <code>setAdConfigs</code> nuốt mọi exception, chỉ <code>logE</code>. Sai schema trên console = app giữ config cũ, không crash, không báo Crashlytics, không có event. Rất khó phát hiện từ xa.</p>
+  <p><b><code>RemoteConfigUtils.TIME_OUT = 3</code> không được dùng.</b> Hàm <code>getRemoteConfigDefaultSetting</code> nhận <code>timeOut</code> mặc định 15 và người gọi không truyền gì. Hằng số 3 giây là code chết, dễ đọc nhầm thành timeout thật.</p>
+</div>
+
+<div class="box ok">
+  <b>Muốn đổi hành vi ads mà không build lại</b>
+  <p>Sửa giá trị khoá <code>BASE_ADMOB_CONFIG</code> trên Firebase console → publish. Máy người dùng nhận sau tối đa 1 giờ, và chỉ áp dụng từ lần mở app kế tiếp (vì fetch nằm ở splash). Bật tắt nhanh một format: đổi <code>is_ad_enabled</code>. Giãn tần suất full ad: đổi <code>ad_show_interval</code>. Đổi waterfall: sắp lại thứ tự mảng <code>ad_units</code>.</p>
+</div>
+
+<div class="box info">
+  <b>Remote Config chỉ điều khiển ads</b>
+  <p>Không có khoá nào cho IAP, paywall, giá gói hay bật tắt tính năng. Muốn A/B test paywall thì phải thêm khoá mới và tầng đọc mới — hiện chưa có.</p>
+</div>
+</section>
+
+<!-- ============ 8 ============ -->
 <section id="gaps">
-<h2><span class="num">07</span> Khoảng trống &amp; rủi ro</h2>
+<h2><span class="num">08</span> Khoảng trống &amp; rủi ro</h2>
 <p class="sub">Những gì đọc ra được từ source hiện tại. Chưa sửa gì — đây là ghi nhận.</p>
 
 <div class="gaps">
+
+  <div class="gap">
+    <div class="sev">Cao</div>
+    <div>
+      <h4>Cache Remote Config ghi mà không bao giờ đọc</h4>
+      <p><code>_cacheAdConfigs</code> ghi JSON vào SharedPreferences key <code>KEY_ADMOB_CONFIGS</code> sau mỗi lần parse, nhưng dòng đọc lại trong <code>initialize()</code> đang bị comment nên biến <code>data</code> luôn <code>null</code>. Mọi lần mở app lạnh đều khởi động bằng bundled default, không tận dụng config remote đã tải lần trước.</p>
+      <div class="ev">firebase_config_manager.dart:26-31 · dòng đọc bị comment</div>
+    </div>
+  </div>
+
+  <div class="gap">
+    <div class="sev">TB</div>
+    <div>
+      <h4>Preload native chạy trước khi fetch Remote Config</h4>
+      <p><code>setupPreloadNative</code> ở <code>main.dart:91</code> đứng trước splash, mà fetch remote lại nằm trong splash. Lượt preload native đầu tiên luôn dùng ad unit của bundled default; đổi native ad unit trên console không tác động tới lượt đó.</p>
+      <div class="ev">main.dart:91 · splash_remote_config_loader.dart:74</div>
+    </div>
+  </div>
 
   <div class="gap">
     <div class="sev">Cao</div>
@@ -486,9 +636,9 @@
 </div>
 </section>
 
-<!-- ============ 8 ============ -->
+<!-- ============ 9 ============ -->
 <section id="map">
-<h2><span class="num">08</span> Bản đồ file</h2>
+<h2><span class="num">09</span> Bản đồ file</h2>
 <p class="sub">Tra nhanh: muốn sửa cái gì thì mở file nào.</p>
 
 <h3>IAP</h3>
@@ -514,6 +664,20 @@
 <tr><td>Sửa native ad / preload</td><td><code>configs/admob/provider/native_widget.dart</code> → <code>lib_admob_plugin/src/native/preload/</code></td></tr>
 <tr><td>Sửa vòng đời ad, retry, timer</td><td>repo <b>lib</b> · <code>lib_admob_plugin/lib/src/</code> — không phải base</td></tr>
 <tr><td>Sửa báo doanh thu ad</td><td>repo <b>lib</b> · <code>lib_admob_plugin/lib/src/adjust/adjust_tracker_utils.dart</code></td></tr>
+</tbody>
+</table>
+
+<h3>Remote Config</h3>
+<table>
+<thead><tr><th>Muốn làm</th><th>Mở file</th></tr></thead>
+<tbody>
+<tr><td>Đổi tiền tố khoá (mỗi app một root)</td><td><code>configs/firebase/firebase_constants.dart</code> — <code>FBASE_ROOT</code></td></tr>
+<tr><td>Sửa JSON mặc định viết cứng</td><td><code>configs/firebase/firebase_admob_config.dart</code> — <code>IOS_CONFIG</code> / <code>ANDROID_CONFIG</code></td></tr>
+<tr><td>Sửa cách parse JSON thành AdConfig</td><td><code>configs/firebase/firebase_config_manager.dart</code> — <code>setAdConfigs</code></td></tr>
+<tr><td>Sửa lúc nào fetch, xử lý lỗi fetch</td><td><code>ui/splash/services/splash_remote_config_loader.dart</code></td></tr>
+<tr><td>Đổi thời gian cache / timeout</td><td>repo <b>lib</b> · <code>lib_firebase/lib/src/remote_config_utils.dart</code></td></tr>
+<tr><td>Sửa default từng trường lẻ</td><td>repo <b>lib</b> · <code>lib_admob_plugin/lib/src/models/ad_config_constants.dart</code></td></tr>
+<tr><td>Thêm format ad mới vào schema</td><td>repo <b>lib</b> · <code>lib_admob_plugin/lib/src/models/ad_format.dart</code> + <code>ad_config.dart</code></td></tr>
 </tbody>
 </table>
 
