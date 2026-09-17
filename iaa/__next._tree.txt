@@ -1,0 +1,6 @@
+:HL["/flutter-flow-docs/_next/static/chunks/42xj-xzsf2u3n.css","style"]
+:HL["/flutter-flow-docs/_next/static/media/2bbe8d2671613f1f-s.p.0k62hbripvv8p.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
+:HL["/flutter-flow-docs/_next/static/media/70bc3e132a0a741e-s.p.3t6q91iet4nsy.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
+:HL["/flutter-flow-docs/_next/static/media/83afe278b6a6bb3c-s.p.2bn3s6zvc0dyp.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
+:HL["/flutter-flow-docs/_next/static/media/89b21bb081cb7469-s.p.1fby2rem9ngyr.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"iaa","param":null,"prefetchHints":4192,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}},"staleTime":300,"buildId":"BM0aPP5tlsUqQ8npwKuOC"}
