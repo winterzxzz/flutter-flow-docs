@@ -84,31 +84,33 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
+  /* Nền nhấc khỏi đen tuyệt đối và chữ hạ khỏi trắng tuyệt đối:
+     cặp #000/#fff gây loé chữ khi đọc dài. */
+  --background: oklch(0.178 0 0);
+  --foreground: oklch(0.935 0 0);
+  --card: oklch(0.223 0 0);
+  --card-foreground: oklch(0.935 0 0);
+  --popover: oklch(0.223 0 0);
+  --popover-foreground: oklch(0.935 0 0);
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  --secondary: oklch(0.295 0 0);
+  --secondary-foreground: oklch(0.955 0 0);
+  --muted: oklch(0.275 0 0);
+  --muted-foreground: oklch(0.785 0 0);
+  --accent: oklch(0.283 0 0);
+  --accent-foreground: oklch(0.975 0 0);
+  --destructive: oklch(0.72 0.17 22.216);
+  --border: oklch(1 0 0 / 14%);
+  --input: oklch(1 0 0 / 18%);
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar: oklch(0.198 0 0);
+  --sidebar-foreground: oklch(0.935 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.269 0 0);
@@ -117,14 +119,38 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Kích thước chữ toàn site: mặc định của Tailwind hơi nhỏ cho văn bản kỹ
+   thuật đọc dài, nhất là tiếng Việt có dấu. Nâng một nấc và nới chiều cao
+   dòng, áp dụng cho mọi text-xs / text-sm / text-base đang dùng. */
+@theme inline {
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.65;
+  --text-base: 1.0313rem;
+  --text-base--line-height: 1.7;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
   }
   html {
     @apply font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  /* Dấu tiếng Việt nằm cao, cần thêm khoảng thở giữa các dòng tiêu đề. */
+  h1, h2, h3, h4 {
+    line-height: 1.3;
+  }
+  /* Chữ trong ô mã dễ bị mảnh trên nền tối. */
+  code {
+    font-variant-ligatures: none;
   }
 }

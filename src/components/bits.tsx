@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 /** Inline code with a consistent look across every page. */
 export function C({ children }: { children: React.ReactNode }) {
   return (
-    <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[12.5px]">
+    <code className="rounded border border-border/60 bg-muted px-1.5 py-0.5 font-mono text-[0.86em] text-foreground/95">
       {children}
     </code>
   );
@@ -30,15 +30,15 @@ export function Note({
   children: React.ReactNode;
 }) {
   const border = {
-    info: "border-l-foreground/30",
+    info: "border-l-sky-400/70",
     warn: "border-l-destructive",
-    good: "border-l-foreground/60",
+    good: "border-l-emerald-400/70",
   }[tone];
 
   return (
     <div className={cn("my-5 rounded-lg border border-l-4 bg-card p-4", border)}>
-      <p className="mb-1 text-sm font-semibold">{title}</p>
-      <div className="space-y-2 text-sm text-muted-foreground">{children}</div>
+      <p className="mb-1.5 text-sm font-semibold">{title}</p>
+      <div className="space-y-2 text-sm text-foreground/75">{children}</div>
     </div>
   );
 }
@@ -51,7 +51,7 @@ export function Facts({ rows }: { rows: [string, React.ReactNode][] }) {
         {rows.map(([k, v]) => (
           <TableRow key={k}>
             <TableCell className="w-56 align-top font-medium">{k}</TableCell>
-            <TableCell className="text-muted-foreground">{v}</TableCell>
+            <TableCell className="text-foreground/75">{v}</TableCell>
           </TableRow>
         ))}
       </TableBody>
@@ -82,7 +82,7 @@ export function Grid({
             {r.map((cell, j) => (
               <TableCell
                 key={j}
-                className={j === 0 ? "font-medium" : "text-muted-foreground"}
+                className={j === 0 ? "font-medium" : "text-foreground/75"}
               >
                 {cell}
               </TableCell>
@@ -130,7 +130,7 @@ export function Tag({ children }: { children: React.ReactNode }) {
 /** File path reference shown under a claim. */
 export function Src({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mt-2 font-mono text-[11px] text-muted-foreground/70">
+    <p className="mt-2.5 font-mono text-[12px] text-muted-foreground/80">
       {children}
     </p>
   );
