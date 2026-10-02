@@ -41,7 +41,7 @@ export function Figure({
 }) {
   return (
     <figure className="my-6" data-diagram>
-      <div className="dg rounded-xl border p-3 sm:p-5">{children}</div>
+      <div className="dg rounded-2xl border p-3 sm:p-5">{children}</div>
       {caption ? (
         <figcaption className="mt-2.5 text-center text-xs text-muted-foreground">
           {caption}
@@ -218,8 +218,10 @@ export function Tree({
       from: n.parent!.id,
       to: n.id,
       bend: 0.4,
+      // Wide: the condition chip sits where the arrow lands, so it stands in
+      // for the head. Narrow: the chip moves to the corner and the head shows.
       head: !n.when,
-      narrow: n.fork ? { out: "b", in: "l", outAt: 13, inAt: 0.5 } : undefined,
+      narrow: n.fork ? { out: "b", in: "l", outAt: 13, inAt: 0.5, head: true } : { head: true },
     }));
 
   if (feeds?.length) {
@@ -579,8 +581,8 @@ export function Lanes({
 
 /* ───────────────────────────── Share ──────────────────────────── */
 
-// Categorical slots 1 and 2 of the dark palette; validated as a pair.
-const SEGMENT = ["#3987e5", "#d95926"];
+// Categorical slots 1 and 2; each theme sets its own pair in globals.css.
+const SEGMENT = ["var(--dg-seg-1)", "var(--dg-seg-2)"];
 
 type ShareRowData = {
   label: string;

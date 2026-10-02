@@ -28,7 +28,7 @@ export function useToc(pathname: string) {
       frame = 0;
       let active = items[0]?.id ?? "";
       for (const h of heads) {
-        if (h.getBoundingClientRect().top > 120) break;
+        if (h.getBoundingClientRect().top > 130) break;
         active = h.id;
       }
       setState((s) =>
@@ -61,17 +61,17 @@ export function TocList({
   onPick?: () => void;
 }) {
   return (
-    <ul className="space-y-0.5 border-l">
+    <ul className="space-y-0.5">
       {items.map((i) => (
         <li key={i.id}>
           <a
             href={`#${i.id}`}
             onClick={onPick}
             className={cn(
-              "-ml-px block border-l py-1 pl-3 text-[0.8rem] leading-snug transition-colors",
+              "block py-1 text-[0.875rem] leading-snug transition-colors",
               i.id === active
-                ? "border-brand font-medium text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground",
+                ? "font-medium text-foreground dark:text-brand"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             {i.text}

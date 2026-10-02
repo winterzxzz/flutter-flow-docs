@@ -1,3 +1,6 @@
+import { CircleCheck, Info, TriangleAlert } from "lucide-react";
+
+import { T } from "@/components/locale";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -13,13 +16,19 @@ import { cn } from "@/lib/utils";
 /** Inline code with a consistent look across every page. */
 export function C({ children }: { children: React.ReactNode }) {
   return (
-    <code className="rounded border border-border/60 bg-muted box-decoration-clone px-1.5 py-0.5 font-mono text-[0.86em] [overflow-wrap:anywhere] text-foreground/95">
+    <code className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.85em] font-medium [overflow-wrap:anywhere] text-foreground/90">
       {children}
     </code>
   );
 }
 
-/** Short callout. tone drives the left border colour only. */
+const NOTE = {
+  info: { icon: Info, tint: "text-sky-600 dark:text-sky-400" },
+  warn: { icon: TriangleAlert, tint: "text-amber-600 dark:text-amber-400" },
+  good: { icon: CircleCheck, tint: "text-emerald-600 dark:text-emerald-400" },
+} as const;
+
+/** Short callout. tone picks the icon; the frame stays neutral. */
 export function Note({
   tone = "info",
   title,
@@ -29,23 +38,22 @@ export function Note({
   title: string;
   children: React.ReactNode;
 }) {
-  const border = {
-    info: "border-l-sky-400/70",
-    warn: "border-l-destructive",
-    good: "border-l-emerald-400/70",
-  }[tone];
+  const { icon: Icon, tint } = NOTE[tone];
 
   return (
-    <div className={cn("my-5 rounded-lg border border-l-4 bg-card p-4", border)}>
-      <p className="mb-1.5 text-sm font-semibold">{title}</p>
-      <div className="space-y-2 text-sm text-foreground/75">{children}</div>
+    <div className="my-6 flex gap-3.5 rounded-2xl border bg-card px-5 py-4">
+      <Icon className={cn("mt-[0.2rem] size-[1.125rem] shrink-0", tint)} aria-hidden />
+      <div className="min-w-0">
+        <p className="mb-1 text-sm font-semibold">{title}</p>
+        <div className="space-y-2 text-sm text-foreground/75">{children}</div>
+      </div>
     </div>
   );
 }
 
-/** Frame shared by every table: one border, no horizontal scroll of its own. */
+/** Spacing shared by every table. Rows are ruled; there is no outer box. */
 function Framed({ children }: { children: React.ReactNode }) {
-  return <div className="my-5 overflow-hidden rounded-lg border">{children}</div>;
+  return <div className="my-6">{children}</div>;
 }
 
 /** Simple key/value table. On a phone the value drops under its key. */
@@ -55,8 +63,10 @@ export function Facts({ rows }: { rows: [string, React.ReactNode][] }) {
       <Table>
         <TableBody>
           {rows.map(([k, v]) => (
-            <TableRow key={k} className="max-sm:block max-sm:px-3 max-sm:py-2.5">
-              <TableCell className="font-medium max-sm:block max-sm:p-0 sm:w-56">{k}</TableCell>
+            <TableRow key={k} className="max-sm:block max-sm:py-3">
+              <TableCell className="font-medium text-foreground max-sm:block max-sm:p-0 sm:w-52">
+                {k}
+              </TableCell>
               <TableCell className="text-foreground/75 max-sm:block max-sm:p-0 max-sm:pt-0.5">
                 {v}
               </TableCell>
@@ -102,13 +112,13 @@ export function Grid({
         </TableHeader>
         <TableBody>
           {rows.map((r, i) => (
-            <TableRow key={i} className={stack ? "max-sm:block max-sm:px-3 max-sm:py-2.5" : undefined}>
+            <TableRow key={i} className={stack ? "max-sm:block max-sm:py-3" : undefined}>
               {r.map((cell, j) => (
                 <TableCell
                   key={j}
                   data-label={head[j] || undefined}
                   className={cn(
-                    j === 0 ? "font-medium" : "text-foreground/75",
+                    j === 0 ? "font-medium text-foreground" : "text-foreground/75",
                     stack && STACK_CELL,
                     stack && j > 0 && head[j] && STACK_LABEL,
                   )}
@@ -165,13 +175,13 @@ export function Tag({ children }: { children: React.ReactNode }) {
 /** Official source backing a platform claim, shown under the claim. */
 export function Ref({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <p className="mt-2.5 text-[12px] text-muted-foreground/80">
-      Nguồn:{" "}
+    <p className="mt-2.5 text-xs text-muted-foreground">
+      <T k="source" />:{" "}
       <a
         href={href}
         target="_blank"
         rel="noreferrer"
-        className="underline underline-offset-4 hover:text-foreground"
+        className="underline decoration-foreground/25 underline-offset-4 transition-colors hover:text-foreground hover:decoration-brand"
       >
         {children}
       </a>
@@ -181,5 +191,5 @@ export function Ref({ href, children }: { href: string; children: React.ReactNod
 
 /** Body paragraph. Concept pages argue in prose; tables are for lookup. */
 export function P({ children }: { children: React.ReactNode }) {
-  return <p className="my-3 text-[15px] leading-7 text-foreground/80">{children}</p>;
+  return <p className="my-4 text-base text-foreground/80">{children}</p>;
 }

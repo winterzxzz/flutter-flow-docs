@@ -1,4 +1,6 @@
+import { T } from "@/components/locale";
 import { Badge } from "@/components/ui/badge";
+import type { UiKey } from "@/lib/ui";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -24,19 +26,21 @@ export function UseCase({
   lesson: React.ReactNode;
 }) {
   return (
-    <Card className="my-6 gap-0 py-5">
+    <Card className="my-6 gap-0 rounded-2xl py-5 shadow-none ring-0 border">
       <CardContent className="space-y-4 px-5">
         <div className="flex flex-wrap items-center gap-2.5">
           <Badge variant="secondary" className="font-mono text-[10px]">
-            Usecase {n}
+            <T k="usecase" /> {n}
           </Badge>
-          <h3 className="text-base font-semibold">{title}</h3>
+          <h3 className="font-heading text-[1.2rem] leading-snug font-medium">{title}</h3>
         </div>
-        <Part label="Tình huống">{situation}</Part>
-        {flow ? <Part label="Bên trong">{flow}</Part> : null}
-        <Part label="Cơ chế · nếu làm sai">{why}</Part>
-        <div className="rounded-md border-l-4 border-l-emerald-400/70 bg-muted/40 px-3 py-2 text-sm">
-          <span className="font-semibold">Bài học: </span>
+        <Part label="situation">{situation}</Part>
+        {flow ? <Part label="inside">{flow}</Part> : null}
+        <Part label="mechanism">{why}</Part>
+        <div className="rounded-xl border-l-[3px] border-l-emerald-500/80 bg-muted/60 px-4 py-2.5 text-sm">
+          <span className="font-semibold">
+            <T k="lesson" />:{" "}
+          </span>
           <span className="text-foreground/80">{lesson}</span>
         </div>
       </CardContent>
@@ -44,16 +48,28 @@ export function UseCase({
   );
 }
 
-function Part({ label, children }: { label: string; children: React.ReactNode }) {
+function Part({ label, children }: { label: UiKey; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {label}
+      <p className="mb-1 text-[0.72rem] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+        <T k={label} />
       </p>
-      <div className="space-y-2 text-sm text-foreground/80 [&_figure]:my-2">
+      <div className="space-y-2 text-sm text-foreground/80 [&_figure]:my-2 [&>div]:my-1">
         {children}
       </div>
     </div>
+  );
+}
+
+/**
+ * Code block. A line too long for the column wraps instead of making the
+ * block scroll sideways.
+ */
+export function Code({ children }: { children: string }) {
+  return (
+    <pre className="rounded-2xl border bg-card px-4 py-3.5 font-mono text-[0.8125rem] leading-[1.7] [overflow-wrap:anywhere] whitespace-pre-wrap">
+      {children}
+    </pre>
   );
 }
 
@@ -72,9 +88,7 @@ export function CodeTabs({ flutter, swift }: { flutter: string; swift: string })
         ] as const
       ).map(([k, code]) => (
         <TabsContent key={k} value={k}>
-          <pre className="overflow-x-auto rounded-xl border bg-muted/40 p-4 font-mono text-[12px] leading-relaxed">
-            {code}
-          </pre>
+          <Code>{code}</Code>
         </TabsContent>
       ))}
     </Tabs>
@@ -85,7 +99,7 @@ export function CodeTabs({ flutter, swift }: { flutter: string; swift: string })
 export function Assumed() {
   return (
     <Badge variant="outline" className="ml-1 align-middle text-[10px] font-normal">
-      số liệu giả định
+      <T k="assumed" />
     </Badge>
   );
 }

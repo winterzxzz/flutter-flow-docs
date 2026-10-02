@@ -19,6 +19,8 @@ type Route = {
   t?: number;
   /** Max label width in rem, for labels that must wrap inside a tight gap. */
   lw?: number;
+  /** Draw the arrowhead. Default true. */
+  head?: boolean;
 };
 export type Edge = Route & {
   from: string;
@@ -26,7 +28,6 @@ export type Edge = Route & {
   label?: string;
   dashed?: boolean;
   tone?: "main" | "good" | "bad" | "warn";
-  head?: boolean;
   /** Draw this edge in one layout only. */
   only?: "wide" | "narrow";
   /** Overrides used when the diagram is in its narrow layout. */
@@ -167,7 +168,7 @@ function draw(root: HTMLElement, edges: Edge[]) {
       d: toPath(pts),
       tone: edge.tone,
       dashed: edge.dashed,
-      head: edge.head ?? true,
+      head: e.head ?? true,
       label: edge.label,
       lw: e.lw,
       lx,
