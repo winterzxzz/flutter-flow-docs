@@ -1,113 +1,128 @@
-import { Mermaid } from "@/components/mermaid";
+import Link from "next/link";
+
+import { Canvas, Figure, Group, Node } from "@/components/diagram";
 import { PageHeader, Section } from "@/components/page-header";
-import { C, Facts, Grid, Note, Stat } from "@/components/bits";
+import { Grid, P } from "@/components/bits";
+
+const link = "underline underline-offset-4";
 
 export default function Home() {
   return (
     <>
       <PageHeader
         eyebrow="Tổng quan"
-        title="Base và lib"
-        lead="Hai repo Flutter nối với nhau bằng path dependency. Base giữ màn hình và toàn bộ logic mua hàng; lib giữ vòng đời quảng cáo và lớp Firebase."
+        title="Kiếm tiền trong app: IAA và IAP"
+        lead="Một app vừa bán gói vừa hiện quảng cáo có hai dòng tiền chạy qua cùng một luồng khởi động, cùng một bảng điều khiển và cùng một hệ đo. Phần lớn chỗ hỏng không crash: người đã trả tiền vẫn thấy quảng cáo, doanh thu ad không về kho phân tích, campaign đang lãi bị tắt vì ROAS thiếu một nửa. Tài liệu này giải thích cơ chế đằng sau từng chỗ đó, cho cả Flutter lẫn SwiftUI."
       />
 
-      <div className="mb-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Base" value="145" sub="file dart" />
-        <Stat label="Lib" value="5" sub="module" />
-        <Stat label="Path dep" value="3" sub="base → lib" />
-        <Stat label="Module chết" value="2" sub="lib_iap, lib_adjust" />
-      </div>
-
-      <Section title="Ai nối vào ai">
-        <Mermaid
-          caption="Ba path dependency, khai báo ở base/pubspec.yaml:80-85"
-          chart={`flowchart LR
-  subgraph B["repo base"]
-    APP["base_project_flutter<br/>app Flutter"]
-  end
-  subgraph L["repo lib"]
-    FB["lib_firebase"]
-    AD["lib_admob_plugin"]
-    UT["lib_utils"]
-    IAPX["lib_iap"]
-    ADJ["lib_adjust"]
-  end
-  APP -->|path| FB
-  APP -->|path| AD
-  APP -->|path| UT
-  APP -.->|không dùng| IAPX
-  APP -.->|không dùng| ADJ
-  style IAPX stroke-dasharray: 4 4
-  style ADJ stroke-dasharray: 4 4`}
-        />
+      <Section title="Entitlement là sợi dây nối hai dòng tiền">
+        <P>
+          IAP và IAA trông như hai hệ độc lập: một bên nói chuyện với App Store
+          hay Google Play, một bên nói chuyện với Ad SDK. Chúng gặp nhau ở đúng
+          một điểm là entitlement, tức quyền dùng mà store hoặc server xác nhận.
+          Người có quyền thì lớp quảng cáo phải im lặng; người không có thì mọi
+          lệnh load và show còn phải qua consent, Remote Config và cổng giãn
+          cách. Cả hai dòng tiền cuối cùng đổ về cùng một kho phân tích và cùng
+          một MMP, nơi chúng được cộng lại thành ARPU, LTV và ROAS.
+        </P>
+        <Figure caption="Entitlement tắt quảng cáo; cả hai dòng tiền đổ về cùng một hệ đo">
+          <Canvas
+            className="mx-auto max-w-2xl"
+            cols="repeat(2, minmax(0, 1fr))"
+            gap={["4.6rem", "1.9rem"]}
+            wgap={["9rem", "1.9rem"]}
+            edges={[
+              { from: "ctl", to: "ADS", outAt: "align" },
+              { from: "ST", to: "ENT" },
+              {
+                from: "ENT",
+                to: "ADS",
+                label: "có quyền thì tắt",
+                tone: "main",
+                inAt: "align",
+                narrow: { lw: 4.2 },
+              },
+              { from: "ADS", to: "MMP", inAt: "align" },
+              {
+                from: "ADS",
+                to: "EV",
+                label: "doanh thu từng impression",
+                bend: 0.7,
+                inAt: 0.14,
+                narrow: { bend: 0.86 },
+              },
+              { from: "ST", to: "EV", label: "doanh thu giao dịch", inAt: "align", t: 0.42 },
+              { from: "MMP", to: "EV", label: "nguồn cài", outAt: "align" },
+            ]}
+          >
+            <Group id="ctl" title="Điều khiển" col="1 / -1" row="1" cols="repeat(2, minmax(0, 1fr))">
+              <Node id="RC" sub="bật tắt, giãn cách, ad unit">
+                Remote Config
+              </Node>
+              <Node id="CS" sub="UMP · ATT">
+                Consent
+              </Node>
+            </Group>
+            <Group title="IAA · quảng cáo" col="1" row="2">
+              <Node id="ADS" sub="load · show · paid event">
+                Ad SDK
+              </Node>
+            </Group>
+            <Group title="IAP · mua hàng" col="2" row="2" gap={["0.6rem", "1.5rem"]}>
+              <Node id="ENT" tone="key">
+                Entitlement
+              </Node>
+              <Node id="ST" sub="StoreKit · Play Billing">
+                Store
+              </Node>
+            </Group>
+            <Group
+              title="Đo lường"
+              className="mt-16"
+              col="1 / -1"
+              row="3"
+              cols="repeat(2, minmax(0, 1fr))"
+              gap={["4rem", "0.6rem"]}
+              wgap={["8.4rem", "0.6rem"]}
+            >
+              <Node id="MMP" sub="Adjust · AppsFlyer">
+                MMP
+              </Node>
+              <Node id="EV">Kho phân tích</Node>
+            </Group>
+          </Canvas>
+        </Figure>
       </Section>
 
-      <Section title="Hai trục chính nằm ở đâu">
-        <Mermaid
-          caption="IAP gần như trọn trong base; IAA gần như trọn trong lib"
-          chart={`flowchart TB
-  subgraph base["repo base"]
-    direction TB
-    UI["UI: paywall, splash, home"]
-    IAP["IAP<br/>PurchaseService + PremiumCubit"]
-    CFG["Lớp cấu hình ads<br/>key_ads, AppOpenAdSetup"]
-    TRK["Tracking<br/>BucketTrackingUtils"]
-  end
-  subgraph lib["repo lib"]
-    direction TB
-    ADM["lib_admob_plugin<br/>vòng đời mọi format ad"]
-    FBS["lib_firebase<br/>Remote Config, FCM, FIAM"]
-    UTL["lib_utils"]
-  end
-  UI --> IAP
-  UI --> CFG
-  CFG --> ADM
-  UI --> TRK
-  ADM --> FBS
-  IAP -->|tắt ads khi premium| ADM`}
-        />
-      </Section>
-
-      <Section title="Mức phụ thuộc thực tế">
+      <Section title="Khái niệm trước, API sau, bài học cuối">
+        <P>
+          Các trang khái niệm không gắn với codebase nào: chúng nói cơ chế, lý
+          do và đánh đổi, kèm usecase có số liệu giả định. Con số như số lần thử
+          lại hay timeout là giá trị tham khảo kèm lý do; khuyến nghị chính thức
+          của Google hay Apple có dẫn nguồn ngay dưới. Khi đã hiểu cơ chế, trang{" "}
+          <Link href="/platforms" className={link}>
+            Flutter ↔ SwiftUI
+          </Link>{" "}
+          cho biết mỗi khái niệm gọi bằng API nào, còn trang{" "}
+          <Link href="/lessons" className={link}>
+            Lỗi hay gặp
+          </Link>{" "}
+          kể lại những chỗ đã hỏng lặng lẽ trong một dự án Flutter thật. Mục{" "}
+          <Link href="/deep/preload" className={link}>
+            Chuyên sâu
+          </Link>{" "}
+          trả lời các câu hỏi khó hơn về chỉ số quảng cáo.
+        </P>
         <Grid
-          head={["Import từ lib", "Số lần", "Dùng để"]}
+          head={["Nếu bạn cần", "Bắt đầu ở"]}
           rows={[
-            [<C key="a">lib_admob_plugin</C>, "18", "mọi format ad"],
-            [<C key="b">lib_utils</C>, "14", "AppNavigator, log, widget chung"],
-            [<C key="c">admob_config_manager</C>, "5", "cấu hình ad từ Remote Config"],
-            [<C key="d">lib_firebase</C>, "4", "Firebase, Crashlytics, FCM, FIAM"],
-            [<C key="e">key_ads_provider</C>, "2", "interface khai báo ad unit"],
-            [<C key="f">admob_provider</C>, "1", "provider gốc SDK ads"],
+            ["Dựng app mới có ads và IAP", "Khởi động → IAA → IAP → Remote Config"],
+            ["Hiểu vì sao ad không hiện", "Load, thử lại, làm mới → Chuyên sâu"],
+            ["Xử lý subscription cho đúng", "Luồng mua → Subscription"],
+            ["Đo doanh thu và nguồn cài", "Tracking → UA · Kế hoạch đo"],
+            ["Port một tính năng giữa hai nền tảng", "Flutter ↔ SwiftUI"],
           ]}
         />
-      </Section>
-
-      <Section title="Hai module lib không được dùng">
-        <Facts
-          rows={[
-            [
-              "lib_iap",
-              <>
-                Không có trong pubspec của base. Thế hệ trước RevenueCat, dựa
-                trên <C>in_app_purchase</C> thuần.
-              </>,
-            ],
-            [
-              "lib_adjust",
-              <>
-                Rỗng ruột: chỉ còn <C>pubspec.lock</C>, mất cả{" "}
-                <C>pubspec.yaml</C> lẫn <C>lib/</C>. Base dùng thẳng{" "}
-                <C>adjust_sdk</C> từ pub.dev.
-              </>,
-            ],
-          ]}
-        />
-        <Note tone="warn" title="Bẫy">
-          <p>
-            Thêm <C>lib_adjust</C> vào pubspec là fail resolve ngay, vì thư mục
-            đó không còn là một package hợp lệ.
-          </p>
-        </Note>
       </Section>
     </>
   );

@@ -9,7 +9,7 @@ export default function Glossary() {
       <PageHeader
         eyebrow="UA · tra cứu"
         title="Thuật ngữ"
-        lead="Mọi từ viết tắt dùng trong phần UA, kèm công thức khi có. Mở trang này song song khi đọc phần chẩn đoán."
+        lead="Từ viết tắt và thuật ngữ dùng trên toàn site, kèm công thức khi có. Trang tra cứu nên giữ dạng bảng; mở song song khi đọc phần UA và Chuyên sâu."
       />
 
       <Section title="Doanh thu trên đầu người">
@@ -29,7 +29,8 @@ export default function Glossary() {
               "Average Revenue Per Paying User",
               <>
                 Chỉ tính người có trả tiền ={" "}
-                <C>tổng doanh thu ÷ số người trả tiền</C>. Luôn cao hơn ARPU.
+                <C>tổng doanh thu ÷ số người trả tiền</C>. Không thấp hơn ARPU khi
+                cả hai tính trên cùng một loại doanh thu (ví dụ chỉ IAP).
               </>,
             ],
             [
@@ -44,8 +45,9 @@ export default function Glossary() {
               "LTV",
               "Life-Time Value",
               <>
-                Tổng doanh thu một người tạo ra suốt vòng đời. Cách nhanh:{" "}
-                <C>ARPDAU × số ngày sống trung bình</C>.
+                <b>LTV Dn</b>: doanh thu tích luỹ trên mỗi người của một cohort
+                tới ngày n. <b>LTV trọn đời</b>: con số dự báo cho cả vòng đời.
+                Cách ước nhanh: <C>ARPDAU × số ngày hoạt động trung bình</C>.
               </>,
             ],
           ]}
@@ -66,7 +68,6 @@ export default function Glossary() {
               "Return on Ad Spend",
               <>
                 <C>doanh thu ÷ chi phí quảng cáo</C>. Hoà vốn ở <C>1</C> (100%).
-                Không bao giờ âm.
               </>,
             ],
             [
@@ -114,6 +115,11 @@ export default function Glossary() {
               "Khoảng thời gian kỳ vọng thu hồi chi phí thu hút. Thường 30–90 ngày hoặc 180–365 ngày.",
             ],
             [
+              "Organic",
+              "—",
+              "Lượt cài không gán được cho nguồn trả phí nào; phải tách riêng, không coi như một campaign.",
+            ],
+            [
               "Country Tiers",
               "Phân hạng quốc gia",
               "Tier 1 ARPU và CPI cao (Mỹ, Canada, Anh) · Tier 2 trung bình (Mexico, Ba Lan, Thái Lan) · Tier 3 thấp (Việt Nam, Iraq, Moldova).",
@@ -134,12 +140,12 @@ export default function Glossary() {
             [
               "IAP",
               "In-App Purchase",
-              "Mua hàng trong ứng dụng. Trong repo này đi qua RevenueCat.",
+              "Mua hàng trong ứng dụng: hàng tiêu hao, mở khoá vĩnh viễn, subscription.",
             ],
             [
               "IAA",
               "In-App Advertising",
-              "Kiếm tiền bằng hiển thị quảng cáo. Trong repo này đi qua lib_admob_plugin.",
+              "Kiếm tiền bằng hiển thị quảng cáo: banner, interstitial, rewarded, app open, native.",
             ],
             [
               "ASO",
@@ -151,15 +157,36 @@ export default function Glossary() {
         <Note tone="info" title="Hai từ dễ nhầm">
           <p>
             <b>ARPU và LTV.</b> ARPU là doanh thu trung bình trong một khoảng
-            thời gian; LTV là phần tích luỹ tới hết vòng đời. Đặt trần CPI theo
-            ARPU tại mốc hoàn vốn, không theo LTV trọn đời.
+            thời gian; LTV Dn là phần tích luỹ tới ngày n. Đặt trần CPI theo LTV
+            tại mốc hoàn vốn, không theo LTV trọn đời.
           </p>
           <p>
-            <b>CPI thấp không luôn tốt.</b> Trong tổ hợp 11.1 nó nghĩa là thu
-            hút hiệu quả; trong 11.5 nó nghĩa là gần như không ai muốn nhấp.
+            <b>CPI thấp không luôn tốt.</b> Trong tổ hợp &ldquo;thắng mọi
+            khâu&rdquo; nó nghĩa là thu hút hiệu quả; trong &ldquo;concept
+            hỏng&rdquo; nó nghĩa là gần như không ai muốn nhấp.
             Phải đọc cùng các chỉ số khác.
           </p>
         </Note>
+      </Section>
+
+      <Section title="Đo lường và nền tảng">
+        <Grid
+          head={["Viết tắt", "Đầy đủ", "Nghĩa"]}
+          rows={[
+            ["MMP", "Mobile Measurement Partner", "Bên gán lượt cài cho nguồn và nhận doanh thu để tính ROAS, như Adjust, AppsFlyer."],
+            ["Tracker link", "—", "Link của MMP gắn vào quảng cáo; dùng một link test để kiểm attribution đầu-cuối."],
+            ["Paid event · ILRD", "Impression-Level Revenue Data", "Sự kiện doanh thu cho từng impression mà Ad SDK phát ra: giá trị, tiền tệ, độ chính xác."],
+            ["Fill · no-fill", "—", "Request có hay không nhận được ad từ nguồn."],
+            ["Match rate", "—", <><C>matched ÷ request</C>. Chỉ số chẩn đoán, không phải mục tiêu.</>],
+            ["Show rate", "—", <><C>impression ÷ matched</C>. Thấp nghĩa là ad đã xin mà không dùng.</>],
+            ["Giãn cách", "—", "Khoảng tối thiểu giữa hai lần show ad toàn màn hình, do app tự quản. Khác frequency capping trên console AdMob."],
+            ["SSV", "Server-Side Verification", "Server nhận xác nhận phần thưởng rewarded trực tiếp từ AdMob."],
+            ["UMP", "User Messaging Platform", "SDK consent của Google cho GDPR và thông điệp IDFA."],
+            ["ATT · IDFA", "App Tracking Transparency · Identifier for Advertisers", "Prompt của iOS xin quyền truy cập IDFA để tracking."],
+            ["Entitlement", "—", "Quyền dùng do store hoặc server xác nhận. Premium chỉ là tên gói."],
+            ["RTDN", "Real-time Developer Notifications", "Thông báo trạng thái subscription từ Google Play tới server."],
+          ]}
+        />
       </Section>
     </>
   );

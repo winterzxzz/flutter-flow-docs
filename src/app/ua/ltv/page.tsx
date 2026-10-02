@@ -1,6 +1,7 @@
-import { Mermaid } from "@/components/mermaid";
+import { Figure, Tree } from "@/components/diagram";
 import { PageHeader, Section } from "@/components/page-header";
-import { C, Facts, Grid, Note } from "@/components/bits";
+import { C, Facts, Grid, Note, P } from "@/components/bits";
+import { Assumed, UseCase } from "@/components/usecase";
 
 export const metadata = { title: "LTV & cohort" };
 
@@ -8,27 +9,73 @@ export default function Ltv() {
   return (
     <>
       <PageHeader
-        eyebrow="UA · chương 4"
+        eyebrow="UA · khái niệm"
         title="LTV và cohort"
-        lead="LTV quyết định trần chi phí bạn được phép trả cho một lượt cài. Không biết LTV thì mọi con số CPI đều là đoán mò."
+        lead="LTV cho biết một người dùng rốt cuộc mang về bao nhiêu tiền. Nhưng con số đặt trần cho CPI là LTV tại mốc hoàn vốn, không phải LTV trọn đời; lấy nhầm cái sau là trả trước cho doanh thu chưa chắc tới."
       />
 
       <Section title="Hai cách tính, chọn theo độ trưởng thành">
-        <Mermaid
-          caption="Chưa ra mắt thì không có ARPDAU để mà nhân — phải mượn số của app tương tự"
-          chart={`flowchart TB
-  Q{"App đã ra mắt chưa ?"}
-  Q -->|chưa| Z["Mượn dữ liệu lịch sử<br/>của app tương tự<br/>ước tính retention và doanh thu"]
-  Z --> Z1["Thận trọng: đặc thù riêng<br/>có thể làm hành vi khác hẳn"]
-  Q -->|rồi| D{"Dữ liệu đã đủ dày chưa ?"}
-  D -->|"mới, còn mỏng"| A["Cách nhanh<br/>LTV = ARPDAU × số ngày sống trung bình"]
-  D -->|"đã đủ"| B["Cách cohort<br/>doanh thu tích luỹ theo nhóm ngày cài"]
-  A --> A2["Nhược: giả định mọi user như nhau<br/>bỏ qua churn và biến thiên"]
-  B --> B1["Chia cohort D1 D7 D15 D30 D90"]
-  B1 --> B2["Cộng doanh thu tích luỹ từng mốc"]
-  B2 --> B3["LTV cohort = tổng doanh thu ÷ số user"]
-  B3 --> B4["LTV trung bình = gộp nhiều cohort"]`}
-        />
+        <Figure caption="Chưa ra mắt thì không có ARPDAU để mà nhân — phải mượn số của app tương tự">
+          <Tree
+            root={{
+              tone: "ask",
+              label: "App đã ra mắt chưa ?",
+              kids: [
+                {
+                  when: "chưa",
+                  label: "Mượn dữ liệu lịch sử của app tương tự",
+                  sub: "ước tính retention và doanh thu",
+                  kids: [
+                    {
+                      tone: "warn",
+                      label: "Thận trọng: đặc thù riêng có thể làm hành vi khác hẳn",
+                    },
+                  ],
+                },
+                {
+                  when: "rồi",
+                  tone: "ask",
+                  label: "Dữ liệu đã đủ dày chưa ?",
+                  kids: [
+                    {
+                      when: "mới, còn mỏng",
+                      label: "Cách nhanh",
+                      sub: "LTV = ARPDAU × số ngày sống trung bình",
+                      kids: [
+                        {
+                          tone: "warn",
+                          label: "Nhược: giả định mọi user như nhau",
+                          sub: "bỏ qua churn và biến thiên",
+                        },
+                      ],
+                    },
+                    {
+                      when: "đã đủ",
+                      label: "Cách cohort",
+                      sub: "doanh thu tích luỹ theo nhóm ngày cài",
+                      kids: [
+                        {
+                          label: "Chia cohort D1 D7 D15 D30 D90",
+                          kids: [
+                            {
+                              label: "Cộng doanh thu tích luỹ từng mốc",
+                              kids: [
+                                {
+                                  label: "LTV cohort = tổng doanh thu ÷ số user",
+                                  kids: [{ label: "LTV trung bình = gộp nhiều cohort" }],
+                                },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            }}
+          />
+        </Figure>
         <Facts
           rows={[
             [
@@ -57,105 +104,85 @@ export default function Ltv() {
         />
       </Section>
 
-      <Section title="Code của bạn tính được tới đâu">
-        <Mermaid
-          caption="Hai mảnh đầu SDK đã lo; chỉ mảnh doanh thu là thiếu một nửa"
-          chart={`flowchart LR
-  subgraph need["Cần cho cohort"]
-    N1["mốc gốc: ngày cài"]
-    N2["số ngày kể từ khi cài"]
-    N3["doanh thu tích luỹ"]
-  end
-  subgraph have["Thực tế"]
-    H1["install_day<br/>SDK tự gắn mọi event"]
-    H2["retention_day<br/>SDK tự tính mọi event"]
-    H3["iap_purchase_success có<br/>ad revenue KHÔNG có"]
-  end
-  N1 --> H1
-  N2 --> H2
-  N3 -.-> H3
-  style H3 stroke-dasharray: 4 4`}
-        />
-
+      <Section title="Dữ liệu cần cho cohort">
         <Grid
-          head={["Mảnh dữ liệu", "Nguồn", "Trạng thái"]}
+          head={["Mảnh dữ liệu", "Thường lấy từ đâu", "Lưu ý"]}
           rows={[
-            [
-              <C key="a">install_day</C>,
-              "SDK DataBuckets stamp vào mọi event",
-              "Sẵn sàng",
-            ],
-            [
-              <C key="b">retention_day</C>,
-              <>
-                SDK tự tính từ <C>install_day</C> và timestamp của event
-              </>,
-              "Sẵn sàng",
-            ],
-            [
-              <C key="c">session_id · session_number</C>,
-              "SDK stamp vào mọi event",
-              "Sẵn sàng — dùng để tính DAU",
-            ],
-            [
-              "doanh thu IAP",
-              <C key="e">iap_purchase_success</C>,
-              "Có, nhưng thiếu transaction id",
-            ],
-            [
-              "doanh thu IAA",
-              <>
-                <C>onPaidEvent</C> → Adjust
-              </>,
-              "Không có trong DataBuckets",
-            ],
-            [
-              <C key="d">activeDay</C> ,
-              <>
-                trường tự viết trong <C>UserProperties</C>
-              </>,
-              "Có nhưng sai — xem cảnh báo dưới",
-            ],
+            ["ngày cài", "SDK analytics gắn sẵn trên mọi event", "dùng của SDK, đừng tự tính lại"],
+            ["số ngày kể từ cài", "SDK tính từ ngày cài và thời điểm event", "nền của D1, D7, D30"],
+            ["session", "SDK gắn session id, số thứ tự", "dùng để tính DAU"],
+            ["doanh thu IAP", "event mua có transaction id, hoặc server", "trừ hoàn tiền"],
+            ["doanh thu IAA", "paid event gửi về kho phân tích", "thiếu là LTV lệch thấp"],
           ]}
         />
-
-        <Note tone="good" title="Cohort làm được ngay hôm nay">
+        <Note tone="warn" title="Bộ đếm tự viết hay sai">
           <p>
-            Không cần sửa code. <C>install_day</C> và <C>retention_day</C> đã
-            nằm trên từng event, nên nhóm cohort theo ngày cài và vẽ doanh thu
-            tích luỹ D1/D7/D30 là truy vấn thuần trên kho dữ liệu.
-          </p>
-        </Note>
-
-        <Note tone="warn" title="Nhưng LTV vẫn lệch thấp, và activeDay thì sai">
-          <p>
-            <b>Thiếu nửa doanh thu.</b> Không có ad revenue trong DataBuckets
-            nên LTV tính ra thấp hơn thực tế. Với app sống bằng IAA, con số đó
-            gần như vô nghĩa.
-          </p>
-          <p>
-            <b><C>activeDay</C> đếm ngược logic.</b> Nó chỉ tăng khi lần mở app
-            này <i>cùng ngày</i> với lần trước, và không bao giờ tăng khi sang
-            ngày mới. Đây không phải số ngày hoạt động — mọi phân khúc dựng trên
-            nó đều sai. Dùng <C>retention_day</C> của SDK thay thế.
+            Trường &ldquo;số ngày hoạt động&rdquo; tự viết dễ đếm nhầm thành số
+            lần mở trong ngày. Dùng ngày-kể-từ-cài của SDK nếu có, xem trang Lỗi
+            hay gặp.
           </p>
         </Note>
       </Section>
 
-      <Section title="Nguyên tắc rút ra">
-        <Facts
-          rows={[
-            ["Bắt đầu đơn giản", "mô hình phức tạp quá sớm làm chậm khả năng lặp"],
-            [
-              "LTV gắn với giữ chân",
-              "người ở lại lâu tạo nhiều doanh thu hơn, nên cải thiện retention là cách nâng LTV rẻ nhất",
-            ],
-            [
-              "Trần cho CPI lấy theo ARPU, không theo LTV",
-              "CPI phải thấp hơn ARPU tích luỹ tại mốc hoàn vốn đã chọn. LTV trọn đời luôn lớn hơn, nên lấy nó làm trần là trả trước cho doanh thu chưa tới.",
-            ],
-          ]}
+      <Section title="Usecase">
+        <UseCase
+          n="1"
+          title="Tính LTV D7 và D30 từ một cohort"
+          situation={
+            <p>
+              1 000 người cài ngày 1/3. Doanh thu tích luỹ (IAP + ad) của đúng
+              nhóm này: D1 = 150 USD, D7 = 600 USD, D30 = 1 500 USD
+              <Assumed />.
+            </p>
+          }
+          flow={
+            <Grid
+              head={["Mốc", "Doanh thu tích luỹ", "LTV = ÷ 1 000"]}
+              rows={[
+                ["D1", "150", "0,15"],
+                ["D7", "600", "0,60"],
+                ["D30", "1 500", "1,50"],
+              ]}
+            />
+          }
+          why={
+            <p>
+              Tỉ lệ D30/D7 = 2,5 cho biết đường cong còn dốc: một nửa giá trị
+              tới sau tuần đầu. Nếu chỉ có IAP (giả sử 40% tổng), LTV D30 đọc ra
+              là 0,60 thay vì 1,50, và trần CPI bị đặt thấp 2,5 lần.
+            </p>
+          }
+          lesson="LTV là doanh thu tích luỹ của một nhóm cài cùng ngày chia cho kích thước nhóm, ở một mốc cụ thể. Luôn ghi mốc và luôn cộng đủ nguồn."
         />
+        <UseCase
+          n="2"
+          title="Ước nhanh khi dữ liệu còn mỏng"
+          situation={
+            <p>
+              App mới hai tuần, chưa có D30. ARPDAU đang khoảng 0,05 USD, ước số
+              ngày hoạt động trung bình mỗi người là 20<Assumed />.
+            </p>
+          }
+          why={
+            <p>
+              LTV ≈ 0,05 × 20 = 1,00 USD. Nhanh nhưng giả định mọi người như
+              nhau: số ngày hoạt động trung bình bị kéo bởi một nhóm nhỏ dùng rất
+              lâu. Dùng để định hướng, thay bằng cohort khi đủ dữ liệu.
+            </p>
+          }
+          lesson="Cách nhanh cho một con số; cách cohort cho một quyết định."
+        />
+      </Section>
+
+      <Section title="Bắt đầu đơn giản, nâng LTV bằng retention">
+        <P>
+          Mô hình LTV phức tạp quá sớm chỉ làm chậm vòng lặp; cách ước nhanh đủ
+          để định hướng, cách cohort dùng khi cần quyết định. Vì người ở lại lâu
+          tạo nhiều doanh thu hơn, cải thiện retention thường là cách nâng LTV
+          rẻ nhất. Khi đặt trần cho CPI, dùng LTV tại mốc hoàn vốn đã chọn chứ
+          không dùng LTV trọn đời, vì LTV trọn đời luôn lớn hơn và bao gồm cả
+          doanh thu chưa chắc tới. Cách tính trần cụ thể ở trang CPI · ROAS.
+        </P>
       </Section>
     </>
   );

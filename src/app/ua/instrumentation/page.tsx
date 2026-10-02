@@ -1,10 +1,9 @@
-import Link from "next/link";
-
-import { Mermaid } from "@/components/mermaid";
+import { Canvas, Figure, Node } from "@/components/diagram";
 import { PageHeader, Section } from "@/components/page-header";
-import { C, Grid, Note, Src } from "@/components/bits";
+import { Grid, Note } from "@/components/bits";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { UseCase } from "@/components/usecase";
 
 export const metadata = { title: "Kế hoạch đo" };
 
@@ -13,140 +12,66 @@ type Step = {
   effort: string;
   title: string;
   why: string;
-  what: React.ReactNode;
-  where: string;
+  what: string;
+  done: string;
 };
 
 const STEPS: Step[] = [
   {
     order: "1",
     effort: "Nhỏ",
-    title: "Bỏ comment dòng đọc cache config",
-    why: "Một dòng. Chấm dứt việc mọi lần mở app lạnh đều chạy bằng ad config viết cứng.",
-    what: (
-      <>
-        Dòng đọc <C>KEY_ADMOB_CONFIGS</C> trong <C>initialize()</C> đang bị
-        comment nên biến <C>data</C> luôn null. Phần ghi đã chạy sẵn.
-      </>
-    ),
-    where: "firebase_config_manager.dart:26-29",
+    title: "Định danh user và user property",
+    why: "Mọi event và giao dịch phải gắn vào cùng một người, nếu không không join được gì.",
+    what: "Tạo hoặc đọc lại user id trước khi init SDK IAP, MMP và analytics. Gắn premium, ngôn ngữ, phiên bản config làm user property. Đối chiếu danh sách khoá dành riêng của SDK trước khi đặt tên.",
+    done: "Một event bất kỳ trong kho có user id và các user property đúng.",
   },
   {
     order: "2",
     effort: "Vừa",
-    title: "Nối attribution từ Adjust về app",
-    why: "Không có bước này thì mọi phân tích theo campaign, network hay creative đều bất khả thi — bao gồm toàn bộ chương 9, 10, 11.",
-    what: (
-      <>
-        Ba mắt xích đều đứt: <C>AdjustConfig</C> không gán{" "}
-        <C>attributionCallback</C>; <C>handleAttribution</C> không có caller
-        nào; và bản thân nó chỉ sửa state cục bộ mà không gọi{" "}
-        <C>updateUserPropertiesEvent</C>. Nối cả ba, và nhớ tách riêng nhóm
-        organic để nó không bị đếm như một creative.
-      </>
-    ),
-    where:
-      "lib · adjust_sdk.dart · base · bucket_tracking_utils.dart handleAttribution",
+    title: "Nối attribution về app",
+    why: "Không có bước này thì mọi phân tích theo campaign, network hay creative đều bất khả thi.",
+    what: "Đăng ký callback attribution trước khi init MMP SDK; khi nhận, ghi network, campaign, adgroup, creative, tracker name vào user property. Tách riêng organic.",
+    done: "Lượt cài qua tracker link test hiện đúng network trên event in-app đầu tiên sau đó.",
   },
   {
     order: "3",
-    effort: "Nhỏ",
-    title: "Sửa uaTrackerName bị rơi",
-    why: "Sẽ cắn ngay khi bước 2 xong: tham số được nhận nhưng không bao giờ được lưu.",
-    what: (
-      <>
-        <C>updateUserPropertiesEvent</C> khai báo tham số <C>uaTrackerName</C>{" "}
-        nhưng lời gọi <C>copyWith</C> ngay dưới không truyền nó.
-      </>
-    ),
-    where: "bucket_tracking_utils.dart · updateUserPropertiesEvent",
+    effort: "Vừa",
+    title: "Event quảng cáo",
+    why: "App sống bằng IAA cần funnel ad: request, fill, show, click.",
+    what: "ad_request, ad_load_success, ad_load_fail, ad_show, ad_click; mỗi event mang format, placement (enum đóng), ad unit, mã lỗi nếu có.",
+    done: "Tính được fill rate và số ad_show trên mỗi phiên theo placement.",
   },
   {
     order: "4",
     effort: "Vừa",
-    title: "Thêm nhóm event quảng cáo",
-    why: "App sống bằng IAA nhưng không có event IAA nào. Đây là nửa còn thiếu của mọi chỉ số doanh thu.",
-    what: (
-      <>
-        Thêm vào <C>BucketEvent</C>: <C>ad_request</C>, <C>ad_load_success</C>,{" "}
-        <C>ad_load_fail</C>, <C>ad_show</C>, <C>ad_click</C>, <C>ad_paid</C>.
-        Điền <C>EventGroup.ad</C> đang rỗng, và dùng <C>AdPlacement</C> vốn đã
-        khai báo 8 giá trị nhưng chưa ai gọi.
-      </>
-    ),
-    where: "bucket_event.dart · ad_placement.dart · bucket_devtools_state.dart",
+    title: "Doanh thu ad về cả MMP lẫn kho",
+    why: "Thiếu nó thì ARPU, LTV, ROAS thiếu một nửa doanh thu.",
+    what: "Từ paid event của Ad SDK: gửi MMP (ad revenue API) và gửi ad_paid vào kho kèm giá trị đã đổi đơn vị, tiền tệ, độ chính xác, format, placement.",
+    done: "Tổng ad_paid một ngày khớp tương đối với báo cáo của mạng quảng cáo.",
   },
   {
     order: "5",
-    effort: "Vừa",
-    title: "Bắc cầu onPaidEvent về BucketTrackingUtils",
-    why: "Đi cùng bước 4. Thiếu nó thì ARPU, LTV và ROAS vẫn thiếu một nửa doanh thu.",
-    what: (
-      <>
-        Mọi format đã gắn <C>onPaidEvent</C> và đẩy sang Adjust. Thêm nhánh song
-        song bắn <C>ad_paid</C> kèm <C>value_micros</C>, <C>currency</C>,{" "}
-        <C>precision</C>, <C>ad_format</C>, <C>placement</C>.
-      </>
-    ),
-    where:
-      "lib · 7 chỗ gán onPaidEvent trong 6 file, cộng 6 chỗ fan-out ở tầng app",
+    effort: "Nhỏ",
+    title: "Event IAP đủ để khử trùng và đảo ngược",
+    why: "Hoàn tiền và event gửi trùng làm doanh thu sai nếu không có khoá.",
+    what: "paywall_show (điểm vào), paywall_click (gói), purchase_success / purchase_fail kèm transaction id, product id, giá, tiền tệ; kết quả verify là một event trong cùng dòng.",
+    done: "Không có transaction id trùng trong kho; hoàn tiền trừ được đúng lần mua.",
   },
   {
     order: "6",
     effort: "Nhỏ",
-    title: "Sửa activeDay đếm ngược logic",
-    why: "Mọi phân khúc dựng trên active_day hiện nay đều sai.",
-    what: (
-      <>
-        Điều kiện tăng đang là &ldquo;lần mở này cùng ngày với lần trước&rdquo;,
-        nên nó đếm số lần mở lại trong cùng một ngày và không bao giờ tăng khi
-        sang ngày mới. Cân nhắc bỏ hẳn trường này và dùng{" "}
-        <C>retention_day</C> của SDK.
-      </>
-    ),
-    where: "app_config_cubit.dart · nhánh so sánh lastAccess với now",
+    title: "Báo lỗi cho những gì hỏng lặng lẽ",
+    why: "Parse config hỏng, verify hỏng, consent lỗi đều không crash, nên không báo thì không ai biết.",
+    what: "Event và non-fatal cho parse Remote Config, verify IAP, consent; kèm phiên bản template config.",
+    done: "Publish thử một JSON hỏng ở môi trường test thì cảnh báo tới được.",
   },
   {
     order: "7",
     effort: "Nhỏ",
-    title: "Báo lỗi parse Remote Config và lỗi verify IAP",
-    why: "Hai chỗ hiện chỉ log tại máy, nên hỏng từ xa là không ai biết.",
-    what: (
-      <>
-        <C>setAdConfigs</C> có <C>logE</C> nhưng không báo đi đâu cả — thêm event{" "}
-        <C>remote_config_parse_fail</C> và Crashlytics. <C>verifyIAP</C> chỉ{" "}
-        <C>debugPrint</C> khi hỏng — cho nó đi qua <C>_sendEvent</C> để nối được
-        với <C>iap_purchase_success</C> theo <C>user_id</C>.
-      </>
-    ),
-    where: "firebase_config_manager.dart:73-75 · bucket_tracking_utils.dart verifyIAP",
-  },
-  {
-    order: "8",
-    effort: "Nhỏ",
-    title: "Thêm transaction id vào iap_purchase_success",
-    why: "Không có nó thì không khử trùng lặp được và không đảo ngược được doanh thu khi user hoàn tiền.",
-    what: (
-      <>
-        Payload hiện có <C>pack_name</C>, <C>period</C>, <C>price</C>,{" "}
-        <C>currency</C> nhưng không có mã giao dịch. Giá cũng là tiền tệ bản địa
-        chưa quy đổi — cân nhắc thêm trường USD chuẩn hoá.
-      </>
-    ),
-    where: "iap_purchase_success_param.dart",
-  },
-  {
-    order: "9",
-    effort: "Nhỏ",
-    title: "Đặt condition Remote Config theo quốc gia hoặc phần trăm",
-    why: "Điều kiện tối thiểu để A/B test mật độ quảng cáo. Không có nó thì mọi thử nghiệm chỉ là so trước/sau, đầy nhiễu.",
-    what: (
-      <>
-        Tạo condition trên Firebase console rồi tách giá trị cho cùng khoá{" "}
-        <C>BASE_ADMOB_CONFIG</C>. Cấu trúc một khoá JSON hiện tại không cần đổi.
-      </>
-    ),
-    where: "Firebase console · không cần sửa code",
+    title: "Nhóm đối chứng trên Remote Config",
+    why: "Điều kiện tối thiểu để A/B test mật độ quảng cáo hay paywall.",
+    what: "Dùng condition random percentile, rollout hoặc A/B testing để chia nhóm song song; ghi nhóm vào user property.",
+    done: "So được retention và ARPU giữa hai nhóm trong cùng khoảng thời gian.",
   },
 ];
 
@@ -156,47 +81,69 @@ export default function Instrumentation() {
       <PageHeader
         eyebrow="UA · hành động"
         title="Kế hoạch đo"
-        lead="Chín việc, xếp theo tỉ lệ lợi ích trên công sức. Bước 2 là nút thắt: chưa nối attribution thì phần lớn nội dung UA chưa chạy được."
+        lead="Khi một mắt xích đo lường đứt từ sớm, mọi con số phía sau vẫn ra, chỉ là sai. Các bước dưới đây xếp theo thứ tự phụ thuộc, để khi dựng app mới bạn làm đúng trình tự, và khi rà một app đang chạy bạn tìm được mắt xích đứt sớm nhất."
       />
 
-      <Note tone="warn" title="Trước khi thêm bất cứ trường nào vào common properties">
-        <p>
-          SDK có danh sách khoá cấm ghi đè, gồm <C>install_day</C>,{" "}
-          <C>retention_day</C>, <C>session_id</C>, <C>session_number</C>,{" "}
-          <C>event_date</C>, <C>platform</C>, <C>app_version</C> và nhiều khoá
-          khác. Đẩy một khoá trong danh sách đó vào common properties sẽ{" "}
-          <b>bị bỏ qua lặng lẽ</b>, chỉ để lại một dòng log. Đối chiếu danh sách
-          trước khi lên kế hoạch.
-        </p>
-        <p>
-          Chín trường cohort và session đã được SDK stamp sẵn vào mọi event, nên
-          không cần và không thể tự thêm.{" "}
-          <Link href="/ua/ltv" className="underline underline-offset-4">
-            Xem LTV &amp; cohort
-          </Link>
-          .
-        </p>
-      </Note>
-
       <Section title="Thứ tự phụ thuộc">
-        <Mermaid
-          caption="Bước 4 và 5 phải đi cùng nhau; bước 2 mở khoá toàn bộ nhánh phân tích theo nguồn"
-          chart={`flowchart TB
-  S1["1 · bật cache config"] --> R1["Mở app lạnh dùng đúng config remote"]
-  S2["2 · nối attribution"] --> S3["3 · sửa uaTrackerName"]
-  S3 --> R2["ROAS, CPI, LTV tách được theo<br/>network · campaign · creative"]
-  S4["4 · nhóm event ad"] --> S5["5 · onPaidEvent → DataBuckets"]
-  S5 --> R3["ARPU tổng · eCPM · ROAS tổng"]
-  S4 --> R4["Funnel ad, tần suất, tác động lên retention"]
-  S2 --> R3
-  S6["6 · sửa activeDay"] --> R5["Phân khúc theo độ gắn kết tin được"]
-  S7["7 · báo lỗi config và verify"] --> R6["Hỏng từ xa phát hiện được"]
-  S8["8 · transaction id"] --> R7["Khử trùng lặp, xử lý hoàn tiền"]
-  S9["9 · condition theo quốc gia"] --> R8["A/B test mật độ ad thật sự"]`}
-        />
+        <Figure caption="Bước 3 và 4 đi cùng nhau; bước 2 mở khoá toàn bộ nhánh phân tích theo nguồn">
+          <Canvas
+            className="mx-auto max-w-2xl"
+            cols="1.6rem 1.6rem minmax(0, 1fr) 2.4rem minmax(0, 1fr)"
+            gap={["0px", "0.8rem"]}
+            edges={[
+              { from: "S1", to: "S2", out: "b", in: "l", outAt: 13 },
+              { from: "S1", to: "S3", out: "b", in: "l", outAt: 13 },
+              { from: "S1", to: "S5", out: "b", in: "l", outAt: 13 },
+              { from: "S3", to: "S4", out: "b", in: "l", outAt: 13 },
+              { from: "S2", to: "R1", tone: "good", inAt: "align" },
+              { from: "S3", to: "R3", tone: "good", inAt: "align" },
+              { from: "S4", to: "R2", tone: "good", inAt: "align" },
+              { from: "S5", to: "R2", tone: "good", inAt: "align" },
+              { from: "S6", to: "R4", tone: "good", inAt: "align" },
+              { from: "S7", to: "R5", tone: "good", inAt: "align" },
+            ]}
+          >
+            <Node id="S1" col="1 / 4" row="1">
+              1 · định danh + user property
+            </Node>
+            <Node id="S2" col="2 / 4" row="2">
+              2 · attribution
+            </Node>
+            <Node id="R1" tone="good" col="5" row="2" sub="network · campaign · creative">
+              ROAS, LTV theo
+            </Node>
+            <Node id="S3" col="2 / 4" row="3">
+              3 · event ad
+            </Node>
+            <Node id="R3" tone="good" col="5" row="3">
+              funnel ad, tần suất
+            </Node>
+            <Node id="S4" col="3 / 4" row="4">
+              4 · doanh thu ad
+            </Node>
+            <Node id="S5" col="2 / 4" row="5">
+              5 · event IAP
+            </Node>
+            <Node id="R2" tone="good" className="dg-tall" col="5" row="4 / 6">
+              ARPU tổng · eCPM · ROAS tổng
+            </Node>
+            <Node id="S6" col="1 / 4" row="6">
+              6 · báo lỗi lặng lẽ
+            </Node>
+            <Node id="R4" tone="good" col="5" row="6">
+              hỏng từ xa phát hiện được
+            </Node>
+            <Node id="S7" col="1 / 4" row="7">
+              7 · nhóm đối chứng
+            </Node>
+            <Node id="R5" tone="good" col="5" row="7">
+              A/B test thật sự
+            </Node>
+          </Canvas>
+        </Figure>
       </Section>
 
-      <Section title="Chín việc">
+      <Section title="Mỗi bước có một điều kiện “xong”">
         <div className="space-y-3">
           {STEPS.map((s) => (
             <Card key={s.order} className="gap-0 py-4">
@@ -212,32 +159,57 @@ export default function Instrumentation() {
                 </div>
                 <p className="text-sm">{s.why}</p>
                 <p className="mt-1.5 text-sm text-muted-foreground">{s.what}</p>
-                <Src>{s.where}</Src>
+                <p className="mt-2.5 text-[12px] text-muted-foreground/80">
+                  Xong khi: {s.done}
+                </p>
               </CardContent>
             </Card>
           ))}
         </div>
       </Section>
 
-      <Section title="Sau khi vá thì đo được gì">
+      <Section title="Mỗi bước mở khoá chỉ số nào">
         <Grid
-          head={["Chỉ số", "Trước", "Sau bước 2", "Sau bước 4–5"]}
+          head={["Chỉ số", "Cần tới bước"]}
           rows={[
-            ["ARPU (IAP)", "đo được", "tách theo campaign", "—"],
-            ["ARPU (IAA)", "mù", "vẫn mù", "đo được"],
-            ["ARPU tổng", "phải ghép tay", "vẫn ghép tay", "một truy vấn"],
-            ["ROAS theo creative", "mù", "đo được phần IAP", "đủ cả hai nguồn"],
-            ["eCPM theo placement", "không có", "không có", "có"],
-            ["LTV cohort", "đo được phần IAP", "tách theo nguồn", "đủ doanh thu"],
-            ["Chẩn đoán chương 11", "chưa dùng được", "dùng được một nửa", "tin được"],
+            ["ARPU (IAP)", "1, 5"],
+            ["ARPU (IAA), eCPM theo placement", "1, 3, 4"],
+            ["ARPU tổng, LTV cohort đủ doanh thu", "1, 4, 5"],
+            ["ROAS theo creative", "1, 2, 4, 5"],
+            ["Tác động của mật độ ad lên retention", "3, 7"],
+            ["Chẩn đoán theo tổ hợp chỉ số", "2, 4, 5"],
           ]}
         />
         <Note tone="info" title="Không đụng tới CTR, IPM, CPI">
           <p>
             Ba chỉ số đó do mạng quảng cáo báo, nằm ngoài app. Kế hoạch này chỉ
-            sửa vế doanh thu và hành vi — tức nửa còn lại của ROAS.
+            dựng vế doanh thu và hành vi, tức nửa còn lại của ROAS.
           </p>
         </Note>
+      </Section>
+
+      <Section title="Usecase">
+        <UseCase
+          n="1"
+          title="Rà một app đang chạy theo bảy bước"
+          situation={
+            <p>
+              Một app Flutter đã có event màn hình và event mua, đã gửi doanh thu
+              ad cho MMP. Team muốn biết vì sao không tính được ROAS theo
+              creative.
+            </p>
+          }
+          why={
+            <p>
+              Đi lần lượt: bước 1 có; bước 2 thiếu vì callback attribution không
+              được nối, mọi event mang nguồn mặc định; bước 3 và 4 thiếu vì doanh
+              thu ad không vào kho; bước 5 thiếu transaction id. Ba lỗ hổng đó
+              giải thích trọn vẹn câu hỏi, và thứ tự sửa đi theo sơ đồ phụ thuộc:
+              bước 2 trước, rồi 3–4, rồi 5.
+            </p>
+          }
+          lesson="Đo lường là chuỗi phụ thuộc; tìm mắt xích đứt sớm nhất rồi sửa từ đó. Chi tiết từng lỗi ở trang Lỗi hay gặp."
+        />
       </Section>
     </>
   );

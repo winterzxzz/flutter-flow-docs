@@ -7,6 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-brand: var(--brand);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
@@ -73,6 +74,7 @@
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
+  --brand: oklch(0.5 0.16 252);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -117,6 +119,12 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  /* Một màu nhấn duy nhất cho điều hướng và liên kết; cùng họ với ô "hỏi"
+     trong sơ đồ. */
+  --brand: oklch(0.76 0.12 252);
+  /* Báo cho trình duyệt đây là nền tối, để thanh cuộn và control mặc định
+     không hiện kiểu sáng. */
+  color-scheme: dark;
 }
 
 /* Kích thước chữ toàn site: mặc định của Tailwind hơi nhỏ cho văn bản kỹ
@@ -153,4 +161,597 @@
   code {
     font-variant-ligatures: none;
   }
+  /* Thanh cuộn mảnh, cùng tông với viền, ở mọi chỗ cuộn. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: oklch(1 0 0 / 22%) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background: oklch(1 0 0 / 22%);
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: oklch(1 0 0 / 36%);
+  }
+  /* Tiêu đề mục không bị thanh trên cùng che khi nhảy tới bằng mục lục. */
+  :target {
+    scroll-margin-top: 5rem;
+  }
+}
+/* ───────────────────────── Sơ đồ ─────────────────────────
+   Sơ đồ dựng bằng HTML thật trong lưới CSS nên chữ luôn ở cỡ thật, không bị
+   co theo bề rộng như SVG. Vai của ô nằm ở data-tone; màu chỉ là tín hiệu
+   phụ, luôn đi kèm icon hoặc nhãn. */
+.dark {
+  --dg-ink: oklch(0.94 0 0);
+  --dg-sub: oklch(0.76 0 0);
+  --dg-fill: oklch(0.275 0 0);
+  --dg-border: oklch(1 0 0 / 17%);
+  --dg-line: oklch(0.6 0 0);
+  --dg-line-strong: oklch(0.86 0 0);
+  --dg-ask: #3987e5;
+  --dg-good: #18a957;
+  --dg-warn: #e6a117;
+  --dg-bad: #e05252;
+}
+
+/* Vị trí trong lưới truyền qua biến; không cho kế thừa để ô trong nhóm lồng
+   nhau không nhận vị trí của nhóm cha. */
+@property --c { syntax: "*"; inherits: false; }
+@property --r { syntax: "*"; inherits: false; }
+@property --wc { syntax: "*"; inherits: false; }
+@property --wr { syntax: "*"; inherits: false; }
+@property --gc { syntax: "*"; inherits: false; }
+@property --wgc { syntax: "*"; inherits: false; }
+@property --gx { syntax: "*"; inherits: false; }
+@property --gy { syntax: "*"; inherits: false; }
+@property --wgx { syntax: "*"; inherits: false; }
+@property --wgy { syntax: "*"; inherits: false; }
+
+.dg {
+  container-type: inline-size;
+  /* Nền thật của khung, để nhãn đè lên đường nối không lộ ô sáng hơn. */
+  --dg-bg: color-mix(in oklab, var(--card) 60%, var(--background));
+  background: var(--dg-bg);
+}
+.dg-canvas {
+  position: relative;
+}
+.dg-edges {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+.dg-edges path {
+  fill: none;
+  stroke: var(--dg-line);
+  stroke-width: 1.5;
+}
+.dg-edges path[data-tone="main"] {
+  stroke: var(--dg-line-strong);
+  stroke-width: 2;
+}
+.dg-edges path[data-tone="good"] { stroke: var(--dg-good); }
+.dg-edges path[data-tone="bad"] { stroke: var(--dg-bad); }
+.dg-edges path[data-tone="warn"] { stroke: var(--dg-warn); }
+.dg-edges path[data-dashed] { stroke-dasharray: 5 4; }
+.dg-edges marker path {
+  stroke: none;
+  fill: var(--dg-line);
+}
+.dg-edges marker[data-tone="main"] path { fill: var(--dg-line-strong); }
+.dg-edges marker[data-tone="good"] path { fill: var(--dg-good); }
+.dg-edges marker[data-tone="bad"] path { fill: var(--dg-bad); }
+.dg-edges marker[data-tone="warn"] path { fill: var(--dg-warn); }
+
+.dg-grid {
+  display: grid;
+  grid-template-columns: var(--gc, minmax(0, 1fr));
+  column-gap: var(--gx, 1rem);
+  row-gap: var(--gy, 2rem);
+  align-items: start;
+}
+.dg-grid > * {
+  grid-column: var(--c, auto);
+  grid-row: var(--r, auto);
+  min-width: 0;
+}
+@container (min-width: 36rem) {
+  .dg-grid {
+    grid-template-columns: var(--wgc, var(--gc, minmax(0, 1fr)));
+    column-gap: var(--wgx, var(--gx, 1rem));
+    row-gap: var(--wgy, var(--gy, 2rem));
+  }
+  .dg-grid > * {
+    grid-column: var(--wc, var(--c, auto));
+    grid-row: var(--wr, var(--r, auto));
+  }
+}
+
+.dg-node {
+  position: relative;
+  z-index: 1;
+  border: 1px solid var(--dg-border);
+  border-radius: 0.6rem;
+  background: var(--dg-fill);
+  padding: 0.5rem 0.6rem;
+  color: var(--dg-ink);
+  font-size: 0.84rem;
+  line-height: 1.4;
+  text-align: center;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+.dg-node b,
+.dg-node .dg-title {
+  font-weight: 550;
+}
+.dg-sub {
+  display: block;
+  margin-top: 0.1rem;
+  color: var(--dg-sub);
+  font-size: 0.76rem;
+  line-height: 1.4;
+  font-weight: 400;
+}
+.dg-icon {
+  display: inline-block;
+  width: 0.95em;
+  height: 0.95em;
+  margin-right: 0.35em;
+  vertical-align: -0.12em;
+}
+.dg-node[data-tone="ask"] {
+  border-color: color-mix(in oklab, var(--dg-ask) 75%, transparent);
+  background: color-mix(in oklab, var(--dg-ask) 17%, var(--card));
+}
+.dg-node[data-tone="ask"] .dg-icon { color: var(--dg-ask); }
+.dg-node[data-tone="good"] {
+  border-color: color-mix(in oklab, var(--dg-good) 70%, transparent);
+  background: color-mix(in oklab, var(--dg-good) 15%, var(--card));
+}
+.dg-node[data-tone="good"] .dg-icon { color: var(--dg-good); }
+.dg-node[data-tone="bad"] {
+  border-color: color-mix(in oklab, var(--dg-bad) 70%, transparent);
+  background: color-mix(in oklab, var(--dg-bad) 14%, var(--card));
+}
+.dg-node[data-tone="bad"] .dg-icon { color: var(--dg-bad); }
+.dg-node[data-tone="warn"] {
+  border-color: color-mix(in oklab, var(--dg-warn) 65%, transparent);
+  background: color-mix(in oklab, var(--dg-warn) 12%, var(--card));
+}
+.dg-node[data-tone="warn"] .dg-icon { color: var(--dg-warn); }
+.dg-node[data-tone="mute"] {
+  border-style: dashed;
+  border-color: oklch(1 0 0 / 28%);
+  background: transparent;
+  color: var(--dg-sub);
+}
+.dg-node[data-tone="key"] {
+  border-color: oklch(1 0 0 / 55%);
+  background: oklch(0.34 0 0);
+  box-shadow: 0 0 0 3px oklch(1 0 0 / 6%);
+}
+.dg-node[data-tone="plain"] {
+  border-color: transparent;
+  background: transparent;
+  padding-inline: 0.25rem;
+}
+
+/* Nhãn điều kiện gắn trên mép ô: "có", "không", "ngày 5 · tắt gia hạn".
+   Nằm trong dòng chảy của ô để nhãn dài được xuống dòng thay vì bị cắt. */
+.dg-when,
+.dg-elabel {
+  border: 1px solid var(--dg-border);
+  background: var(--dg-bg);
+  color: var(--dg-ink);
+  font-size: 0.74rem;
+  line-height: 1.35;
+  font-weight: 500;
+}
+.dg-when {
+  display: table;
+  position: relative;
+  z-index: 2;
+  margin: -1.15rem auto 0.3rem 0;
+  border-radius: 0.65rem;
+  padding: 0.05rem 0.5rem;
+  text-align: left;
+}
+@container (min-width: 36rem) {
+  .dg-when {
+    margin-inline: auto;
+    text-align: center;
+  }
+}
+.dg-elabel {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-50%, -50%);
+  width: max-content;
+  max-width: 8.5rem;
+  border-radius: 0.5rem;
+  padding: 0.05rem 0.45rem;
+  text-align: center;
+}
+@container (min-width: 36rem) {
+  .dg-elabel {
+    max-width: 10.5rem;
+  }
+}
+
+/* Ô trải nhiều cột nhưng không nên kéo dài hết bề ngang. */
+.dg-mid {
+  justify-self: center;
+  width: min(100%, 17rem);
+}
+@container (min-width: 36rem) {
+  .dg-wmid {
+    justify-self: center;
+    width: min(100%, 17rem);
+  }
+}
+
+.dg-group {
+  position: relative;
+  border: 1px dashed oklch(1 0 0 / 22%);
+  border-radius: 0.8rem;
+  background: oklch(1 0 0 / 2.5%);
+  padding: 0.6rem 0.7rem 0.75rem;
+}
+.dg-group[data-tone="plain"] {
+  border-color: transparent;
+  background: transparent;
+  padding: 0;
+}
+.dg-group-title {
+  margin-bottom: 0.55rem;
+  color: var(--dg-sub);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Cây quyết định: ô cha căn giữa trên các nhánh con khi đủ rộng. */
+@container (min-width: 36rem) {
+  .dg-tree > .dg-node[data-span] {
+    justify-self: center;
+    width: min(100%, 17rem);
+  }
+}
+.dg-feeds {
+  display: grid;
+  grid-template-columns: repeat(var(--feeds), minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+/* Chuỗi dọc: ô chính bên trái, lối rẽ bên phải, điểm đến chung ở cột cuối. */
+.dg-rail {
+  display: grid;
+  grid-template-columns: var(--rail-cols);
+  align-items: center;
+}
+.dg-down {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 1.6rem;
+}
+.dg-down::before,
+.dg-down::after {
+  content: "";
+  flex: 1 1 0.45rem;
+  width: 1.5px;
+  min-height: 0.45rem;
+  background: var(--dg-line);
+}
+.dg-down[data-tone="main"]::before,
+.dg-down[data-tone="main"]::after {
+  background: var(--dg-line-strong);
+  width: 2px;
+}
+.dg-down > span {
+  margin: 0.1rem 0;
+  color: var(--dg-ink);
+  font-size: 0.74rem;
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: center;
+}
+.dg-down > i {
+  order: 9;
+  width: 0;
+  height: 0;
+  border-inline: 4px solid transparent;
+  border-top: 6px solid var(--dg-line);
+}
+.dg-down[data-tone="main"] > i {
+  border-top-color: var(--dg-line-strong);
+}
+.dg-exit {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  min-width: 3.25rem;
+  padding-left: 0.15rem;
+}
+.dg-exit > span {
+  flex: 0 1 auto;
+  padding: 0 0.3rem;
+  color: var(--dg-ink);
+  font-size: 0.74rem;
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: center;
+}
+.dg-exit > span small {
+  display: block;
+  color: var(--dg-sub);
+  font-size: 0.7rem;
+  font-weight: 400;
+}
+.dg-exit::before,
+.dg-exit > u {
+  content: "";
+  flex: 1 1 0.5rem;
+  min-width: 0.5rem;
+  height: 0;
+  border-top: 1.5px dashed var(--dg-line);
+}
+.dg-rail[data-solid] .dg-exit::before,
+.dg-rail[data-solid] .dg-exit > u {
+  border-top-style: solid;
+}
+.dg-down[data-dashed]::before,
+.dg-down[data-dashed]::after {
+  width: 0;
+  background: none;
+  border-left: 1.5px dashed var(--dg-line);
+}
+.dg-down[data-dashed] > i {
+  border-top-color: var(--dg-line);
+}
+.dg-exit > i {
+  flex: none;
+  width: 0;
+  height: 0;
+  border-block: 4px solid transparent;
+  border-left: 6px solid var(--dg-line);
+}
+.dg-sink {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: vertical-rl;
+  padding: 0.6rem 0.3rem;
+}
+@container (min-width: 36rem) {
+  .dg-sink {
+    writing-mode: horizontal-tb;
+    padding: 0.6rem 0.9rem;
+  }
+}
+.dg-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid var(--dg-border);
+  border-radius: 999px;
+  background: oklch(1 0 0 / 5%);
+  padding: 0.1rem 0.55rem;
+  color: var(--dg-ink);
+  font-size: 0.76rem;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/* Sơ đồ tuần tự: mỗi bên một cột, đường đời chạy dọc phía sau. */
+.dg-lanes {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--lanes), minmax(0, 1fr));
+  row-gap: 0.15rem;
+}
+.dg-life {
+  position: absolute;
+  top: 0.5rem;
+  bottom: 0;
+  width: 0;
+  border-left: 1.5px dashed oklch(1 0 0 / 20%);
+}
+.dg-actor {
+  z-index: 1;
+  justify-self: center;
+  max-width: calc(100% - 0.3rem);
+  margin-bottom: 0.6rem;
+  padding: 0.3rem 0.5rem;
+  font-weight: 550;
+  font-size: 0.78rem;
+}
+.dg-lanes[data-dense] .dg-actor {
+  max-width: calc(100% - 0.15rem);
+  padding: 0.3rem 0.2rem;
+  font-size: 0.7rem;
+  overflow-wrap: anywhere;
+}
+@container (min-width: 36rem) {
+  .dg-actor,
+  .dg-lanes[data-dense] .dg-actor {
+    padding: 0.4rem 0.9rem;
+    font-size: 0.84rem;
+  }
+}
+.dg-msg {
+  position: relative;
+  z-index: 1;
+  grid-column: 1 / -1;
+  padding: 0.3rem 0 0.25rem;
+}
+.dg-msg-text {
+  display: flex;
+  padding-left: var(--pl, 0);
+  padding-right: var(--pr, 0);
+  justify-content: var(--just, center);
+}
+.dg-msg-text > span {
+  background: var(--dg-bg);
+  padding: 0 0.3rem;
+  color: var(--dg-ink);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  text-align: var(--ta, center);
+}
+.dg-num {
+  display: inline-grid;
+  place-items: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-right: 0.35rem;
+  border-radius: 999px;
+  background: var(--dg-line-strong);
+  color: oklch(0.2 0 0);
+  font-size: 0.68rem;
+  font-weight: 700;
+  vertical-align: 0.05em;
+}
+.dg-arrow {
+  position: relative;
+  height: 9px;
+  margin-top: 0.15rem;
+  margin-left: var(--from);
+  width: var(--len);
+}
+.dg-arrow::before {
+  content: "";
+  position: absolute;
+  inset: 3.75px 0 auto 0;
+  border-top: 1.5px solid var(--dg-line-strong);
+}
+.dg-arrow[data-reply]::before {
+  border-top-style: dashed;
+  border-top-color: var(--dg-line);
+}
+.dg-arrow::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 0;
+  height: 0;
+  border-block: 4.5px solid transparent;
+}
+.dg-arrow[data-dir="r"]::after {
+  right: 0;
+  border-left: 7px solid var(--dg-line-strong);
+}
+.dg-arrow[data-dir="l"]::after {
+  left: 0;
+  border-right: 7px solid var(--dg-line-strong);
+}
+.dg-arrow[data-reply][data-dir="r"]::after { border-left-color: var(--dg-line); }
+.dg-arrow[data-reply][data-dir="l"]::after { border-right-color: var(--dg-line); }
+.dg-self {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding-left: var(--pl, 0);
+  padding-right: var(--pr, 0);
+  justify-content: var(--just, flex-start);
+}
+.dg-self > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--dg-border);
+  border-radius: 0.5rem;
+  background: var(--dg-fill);
+  padding: 0.2rem 0.5rem;
+  color: var(--dg-ink);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+.dg-self svg {
+  flex: none;
+  width: 0.85rem;
+  height: 0.85rem;
+  color: var(--dg-sub);
+}
+.dg-self[data-note] > span {
+  border-color: color-mix(in oklab, var(--dg-warn) 55%, transparent);
+  background: color-mix(in oklab, var(--dg-warn) 11%, var(--card));
+}
+
+/* Thanh tỉ trọng: mỗi đoạn một nhóm, nhãn nằm dưới đoạn bằng màu chữ thường. */
+.dg-share {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.9rem 0.75rem;
+}
+.dg-share-bar {
+  display: flex;
+  gap: 2px;
+}
+.dg-share-bar > div {
+  min-width: 0;
+}
+.dg-share-bar i {
+  display: block;
+  height: 0.8rem;
+  border-radius: 3px;
+  background: var(--seg);
+}
+.dg-share-bar span {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--dg-ink);
+  font-size: 0.76rem;
+  line-height: 1.3;
+}
+
+/* Máy trạng thái: cột trạng thái bên trái, các lối rẽ bên phải. */
+.dg-state {
+  display: grid;
+  grid-template-columns: minmax(6.25rem, 34%) minmax(0, 1fr);
+  column-gap: 0.75rem;
+  align-items: stretch;
+}
+.dg-state > .dg-node {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.dg-state > ul {
+  align-self: center;
+}
+@container (min-width: 36rem) {
+  .dg-state {
+    grid-template-columns: 11rem minmax(0, 1fr);
+  }
+}
+
+/* Ô đích cao bằng cả cụm nguồn bên cạnh. */
+.dg-tall {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.dg-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem;
 }

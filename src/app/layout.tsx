@@ -20,11 +20,11 @@ const mono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Flow Docs — Base & Lib",
+    default: "Flow Docs — IAA & IAP",
     template: "%s · Flow Docs",
   },
   description:
-    "Luồng code giữa Flutter base và lib, tập trung vào IAP, IAA và UA.",
+    "Tài liệu nghiên cứu IAA (quảng cáo) và IAP (mua hàng) cho app Flutter và SwiftUI, kèm UA.",
 };
 
 export default function RootLayout({

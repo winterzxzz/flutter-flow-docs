@@ -1,233 +1,264 @@
-import { Mermaid } from "@/components/mermaid";
+import { Canvas, Figure, Lanes, Node, Rail } from "@/components/diagram";
 import { PageHeader, Section } from "@/components/page-header";
-import { C, Facts, Grid, Note, Stat } from "@/components/bits";
+import { C, Grid, P, Ref } from "@/components/bits";
+import { Assumed, UseCase } from "@/components/usecase";
 
 export const metadata = { title: "Remote Config" };
 
 const SCHEMA = `{
-  "admob_config": {
-    "open_ad": {
-      "id": "OPEN_AD",
-      "ad_units": ["<unit-1>", "<unit-2>"],
-      "is_ad_enabled": true,
-      "ad_show_interval": 15000,
-      "is_use_interstitial_ad": false,
-      "is_use_native_ad": true,
-      "interstitial_ad_units": ["<unit>"]
-    },
-    "interstitial_ad": {
-      "id": "INTERSTITIAL",
-      "ad_units": ["<unit>"],
-      "is_ad_enabled": false,
-      "ad_show_interval": 30000,
-      "include_native_ad": true,
-      "remain_time": 3,
-      "native_ad_units": ["<unit>"]
-    },
-    "native_ad": [
-      {
-        "id": "NATIVE_FULL2",
-        "ad_units": ["<unit>"],
-        "is_ad_enabled": true,
-        "ad_size": "full",
-        "ad_refresh_time": 30000,
-        "is_auto_reload": true,
-        "ctr_position": "bottom"
-      }
-    ],
-    "banner_ad": [
-      {
-        "id": "BANNER_HOME",
-        "ad_units": ["<unit>"],
-        "is_ad_enabled": true,
-        "ad_request_banner": "collapsible"
-      }
-    ],
-    "reward_ad": {
-      "id": "REWARD",
-      "ad_units": ["<unit>"],
-      "is_ad_enabled": true
-    }
-  }
+  "ads": {
+    "app_open":     { "enabled": true,  "units": ["<u1>", "<u2>"], "show_interval_ms": 30000 },
+    "interstitial": { "enabled": true,  "units": ["<u>"],          "show_interval_ms": 30000 },
+    "rewarded":     { "enabled": true,  "units": ["<u>"] },
+    "banner":   [ { "id": "home",   "enabled": true, "units": ["<u>"] } ],
+    "native":   [ { "id": "feed",   "enabled": true, "units": ["<u>"], "refresh_ms": 0 } ]
+  },
+  "paywall": { "products": ["monthly", "yearly"], "default": "yearly" }
 }`;
 
 export default function RemoteConfig() {
   return (
     <>
       <PageHeader
-        eyebrow="06"
-        title="Remote Config"
-        lead="Toàn bộ hành vi quảng cáo điều khiển bằng đúng một khoá chứa một chuỗi JSON. Đổi trên console là đổi được ad unit, bật tắt format, giãn tần suất — không cần build lại."
+        eyebrow="Vận hành · khái niệm"
+        title="Remote Config như bảng điều khiển"
+        lead="Remote Config cho phép bật tắt format, chỉnh giãn cách, đổi ad unit hay gói trên paywall mà không ra bản mới. Lợi ích đó chỉ có thật khi app vẫn chạy đúng lúc không lấy được config: lần mở đầu, mạng yếu, JSON hỏng. Vì vậy phần khó nằm ở in-app default và thời điểm activate, không ở danh sách khoá."
       />
 
-      <div className="mb-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Số khoá" value="1" sub="BASE_ADMOB_CONFIG" />
-        <Stat label="Cache release" value="1 giờ" sub="minimumFetchInterval" />
-        <Stat label="Cache debug" value="0s" sub="fetch mỗi lần" />
-        <Stat label="Fetch timeout" value="15s" sub="giá trị mặc định" />
-      </div>
-
-      <Section title="Ba tầng giá trị">
-        <Mermaid
-          caption="Tầng dưới đỡ cho tầng trên khi thiếu"
-          chart={`flowchart TB
-  A["1 · Remote<br/>getString sau fetchAndActivate"] --> D{"có giá trị ?"}
-  D -->|có| OUT["giá trị dùng thật"]
-  D -->|không| B["2 · Bundled default<br/>IOS_CONFIG / ANDROID_CONFIG"]
-  B --> E{"trường có trong JSON ?"}
-  E -->|có| OUT
-  E -->|không| C["3 · AdConfigConstants<br/>default từng trường"]
-  C --> OUT`}
-        />
-      </Section>
-
-      <Section title="Thời điểm nào đọc gì">
-        <Mermaid
-          caption="Điểm mấu chốt: preload native chạy trước khi fetch remote"
-          chart={`sequenceDiagram
-  autonumber
-  participant M as main.dart
-  participant F as FirebaseProvider
-  participant K as FirebaseConstantManager
-  participant S as Splash
-  participant R as Firebase Remote Config
-  M->>F: initFirebase()
-  F->>F: setConfigSettings + setDefaults
-  Note over F: chưa gọi mạng
-  M->>K: initialize()
-  K->>K: parse BUNDLED default
-  Note over K: không đọc remote
-  M->>M: setupPreloadNative()
-  Note over M: dùng config tạm
-  M->>S: runApp
-  S->>S: CMP consent
-  S->>R: fetchAndActivate()
-  R-->>S: JSON
-  S->>K: setAdConfigs(json)
-  K->>K: ghi đè _adConfigs
-  S->>S: SplashAdmobInitializer`}
-        />
-      </Section>
-
-      <Section title="Hình dạng JSON">
+      <Section title="Đưa lên những gì cần chỉnh nhanh, giữ lại những gì phải bí mật">
         <Grid
-          head={["Nhánh", "Kiểu", "Trường riêng"]}
+          head={["Nên đưa lên", "Vì sao"]}
           rows={[
-            [
-              <C key="1">open_ad</C>,
-              "object",
-              <>
-                <C>ad_show_interval</C>, <C>is_use_interstitial_ad</C>,{" "}
-                <C>is_use_native_ad</C>, <C>interstitial_ad_units</C>
-              </>,
-            ],
-            [
-              <C key="2">interstitial_ad</C>,
-              "object",
-              <>
-                <C>ad_show_interval</C>, <C>include_native_ad</C>,{" "}
-                <C>remain_time</C>, <C>native_ad_units</C>
-              </>,
-            ],
-            [
-              <C key="3">native_ad</C>,
-              "mảng",
-              <>
-                <C>ad_size</C>, <C>ad_refresh_time</C>, <C>is_auto_reload</C>,{" "}
-                <C>ctr_position</C>
-              </>,
-            ],
-            [<C key="4">banner_ad</C>, "mảng", <C key="x">ad_request_banner</C>],
-            [<C key="5">reward_ad</C>, "object · tuỳ chọn", "chỉ trường chung"],
+            ["Bật tắt từng format, từng chỗ đặt", "tắt nhanh khi ad gây crash hoặc vi phạm chính sách"],
+            ["Giãn cách interstitial, app open", "đòn bẩy chính giữa doanh thu và retention"],
+            ["Danh sách ad unit, thứ tự waterfall", "đổi nguồn mà không cần review store"],
+            ["Thời gian làm mới native", "0 nghĩa là tắt"],
+            ["Gói hiện trên paywall, gói mặc định", "thử giá và cách trình bày"],
+            ["Điểm hiện paywall", "sau onboarding, khi mở app, khi chạm tính năng"],
           ]}
         />
-        <p className="text-sm text-muted-foreground">
-          Trường chung mọi nhánh: <C>id</C>, <C>ad_units</C>, <C>is_ad_enabled</C>.
-        </p>
+        <P>
+          Đừng đưa bí mật lên Remote Config: mọi giá trị đều được tải về máy
+          người dùng. Logic nhiều nhánh cũng không nên nằm ở đó, vì không ai
+          test được mọi tổ hợp giá trị. Product id chưa tồn tại trên store thì
+          càng không, vì store trả rỗng mà không báo lỗi.
+        </P>
+      </Section>
 
+      <Section title="In-app default là cấu hình cho điều kiện xấu nhất">
+        <P>
+          Giá trị dùng thật đến từ ba tầng. Tầng trên là giá trị remote đã
+          activate; thiếu thì xuống in-app default, tức cấu hình đóng gói trong
+          app; thiếu nữa thì xuống default từng trường trong code parse. App mới
+          cài, offline hay fetch hỏng đều chạy bằng in-app default, nên nó phải
+          là cấu hình chạy được và bảo thủ: ít ad hơn, không phải nhiều hơn.
+        </P>
+        <Figure caption="Tầng dưới đỡ cho tầng trên khi thiếu">
+          <Rail
+            sink={{ label: "giá trị dùng thật", tone: "good" }}
+            rows={[
+              { label: "1 · Giá trị remote", sub: "đã activate", exit: { label: "có" }, down: "không" },
+              {
+                label: "2 · In-app default",
+                sub: "đóng gói trong app",
+                exit: { label: "trường có" },
+                down: "không",
+              },
+              { label: "3 · Default từng trường", sub: "trong code parse", exit: {} },
+            ]}
+          />
+        </Figure>
+        <P>
+          JSON sai schema thì app giữ cấu hình đang có và báo lỗi về crash
+          reporter hoặc analytics, không chỉ log tại máy. Cấu hình đã parse
+          thành công nên được lưu lại và đọc ở lần mở app lạnh kế tiếp, để không
+          quay về in-app default mỗi lần.
+        </P>
+      </Section>
+
+      <Section title="Activate lúc nào quyết định khi nào người dùng thấy thay đổi">
+        <Grid
+          head={["Cách", "Làm thế nào", "Hợp với"]}
+          rows={[
+            ["Fetch và activate lúc mở", <><C>fetchAndActivate</C> ngay khi khởi động</>, "thay đổi không làm UI đổi rõ rệt"],
+            ["Activate sau màn loading", "giữ màn loading tới khi fetch xong, có timeout riêng", "thử nghiệm A/B"],
+            ["Load cho lần mở sau", "activate giá trị đã fetch từ trước, fetch nền cho lần sau", "khởi động nhanh nhất"],
+          ]}
+        />
+        <P>
+          Firebase lưu ý timeout mặc định một phút có thể quá dài cho lúc khởi
+          động, nên cách thứ hai cần timeout riêng ngắn hơn. Với cách thứ ba,
+          thay đổi trên console chỉ có hiệu lực từ lần mở kế tiếp. Listener
+          real-time (<C>addOnConfigUpdateListener</C> trên native,{" "}
+          <C>onConfigUpdated</C> trên Flutter) giữ kết nối khi app ở foreground
+          và tự fetch khi có bản mới, bỏ qua <C>minimumFetchInterval</C>; app vẫn
+          phải tự gọi activate. Dù dùng cách nào, chỉ áp giá trị mới vào màn
+          người dùng đang thao tác khi có lý do kinh doanh rõ ràng.
+        </P>
+        <Ref href="https://firebase.google.com/docs/remote-config/loading">
+          Firebase · Remote Config loading strategies
+        </Ref>
+        <Ref href="https://firebase.google.com/docs/remote-config/real-time">
+          Firebase · Real-time Remote Config
+        </Ref>
+      </Section>
+
+      <Section title="Thứ gì preload trước khi config về thì chạy bằng default">
+        <Figure caption="Đọc cache phiên trước, fetch có timeout, parse lỗi thì giữ cái cũ">
+          <Lanes
+            numbered
+            actors={[
+              { id: "A", label: "App" },
+              { id: "C", label: "Lớp config" },
+              { id: "R", label: "Remote Config" },
+              { id: "D", label: "Ad SDK" },
+            ]}
+            steps={[
+              { from: "A", to: "C", text: "init: đọc cache phiên trước" },
+              { note: "C", text: "không có cache thì dùng in-app default" },
+              { from: "A", to: "R", text: "fetch (có timeout)" },
+              { from: "R", to: "C", text: "JSON mới", reply: true },
+              { self: "C", text: "parse · lỗi thì giữ cái cũ" },
+              { from: "C", to: "D", text: "cấu hình ad" },
+              { self: "D", text: "preload" },
+            ]}
+          />
+        </Figure>
+      </Section>
+
+      <Section title="Một khoá JSON đổi đồng bộ được nhiều trường, và hỏng cùng lúc">
+        <P>
+          Gom cả nhóm ad vào một khoá JSON giúp đổi đồng bộ nhiều trường trong
+          một lần publish. Đổi lại, sai một ký tự là cả khối hỏng, nên mới cần
+          default từng trường và báo lỗi parse. Banner và native thường tra
+          config theo id của chỗ đặt; sai một ký tự là không tìm thấy và ad
+          không hiện mà không có lỗi nào, nên hãy log id tra không thấy. Nhiều
+          app chung một project Firebase thì đặt tiền tố khoá riêng cho từng
+          app, nếu không hai app fork từ cùng một base sẽ tranh cùng một khoá.
+        </P>
         <pre className="mt-5 overflow-x-auto rounded-xl border bg-muted/40 p-4 font-mono text-[12px] leading-relaxed">
           {SCHEMA}
         </pre>
       </Section>
 
-      <Section title="Parse rồi tra cứu thế nào">
-        <Mermaid
-          caption="Năm nhánh bị làm phẳng thành một danh sách; tra theo type hoặc theo id"
-          chart={`flowchart LR
-  J["JSON admob_config"] --> P["setAdConfigs()"]
-  P --> F["List&lt;AdConfig&gt;<br/>đã làm phẳng"]
-  F --> T1["theo type<br/>interstitialConfig<br/>openAdConfig<br/>rewardedConfig"]
-  F --> T2["theo id<br/>getBannerAdConfig(id)<br/>getNativeAdConfig(id)"]`}
-        />
-        <Note tone="warn" title="id phải khớp chính xác">
-          <p>
-            Widget truyền <C>id</C> vào để tra config. Sai một ký tự thì
-            <C>firstWhereOrNull</C> trả <C>null</C> và ad im lặng không hiện —
-            không lỗi, không log.
-          </p>
-        </Note>
+      <Section title="Chỉ nhóm song song mới cho biết thay đổi có đáng không">
+        <P>
+          Condition của Remote Config nhắm theo phiên bản app, nền tảng, ngôn
+          ngữ, quốc gia, audience hay user property của Analytics, hoặc user in
+          random percentile. Rollout phát dần một giá trị mới cho một phần trăm
+          người dùng, theo dõi Crashlytics và Analytics, rồi tăng hoặc rút lại.
+          A/B testing chia nhóm song song cho cùng một khoá. Không có nhóm song
+          song thì chỉ còn so trước/sau theo thời gian, và kết quả lẫn với mùa
+          vụ, phiên bản app và thay đổi nguồn traffic.
+        </P>
+        <Ref href="https://firebase.google.com/docs/remote-config/parameters">
+          Firebase · Remote Config parameters and conditions
+        </Ref>
+        <Ref href="https://firebase.google.com/docs/remote-config/rollouts">
+          Firebase · Remote Config rollouts
+        </Ref>
       </Section>
 
-      <Section title="Khi fetch hỏng">
-        <Grid
-          head={["Tình huống", "Xử lý", "Event"]}
-          rows={[
-            ["Không có mạng", "return sớm, giữ bundled default", <C key="1">loading_finish · no_internet</C>],
-            ["remoteConfig null", "log cảnh báo, giữ bundled default", <C key="2">loading_finish · server_error</C>],
-            ["Exception khi fetch", "debugPrint rồi đi tiếp", <C key="3">loading_finish · server_error</C>],
-            [
-              "JSON sai schema",
-              <>
-                <C>catch</C> trong <C>setAdConfigs</C>, giữ nguyên{" "}
-                <C>_adConfigs</C> đang có — ở lần mở app lạnh đó chính là bundled
-                default, không phải config remote lần trước
-              </>,
-              <>chỉ <C>logE</C> tại máy, không event, không Crashlytics</>,
-            ],
-          ]}
+      <Section title="Usecase">
+        <UseCase
+          n="1"
+          title="Giãn interstitial ở Brazil, retention lên mà không biết vì sao"
+          situation={
+            <p>
+              Retention D1 ở Brazil thấp hơn các nước khác. Team tăng giãn cách
+              từ 30 lên 60 giây chỉ cho Brazil<Assumed />. Hai tuần sau D1 tăng
+              hai điểm, nhưng cùng lúc đó có một bản phát hành mới và một
+              campaign mới ở Brazil.
+            </p>
+          }
+          flow={
+            <Figure>
+              <Canvas
+                className="mx-auto max-w-lg"
+                cols="repeat(2, minmax(0, 1fr))"
+                gap={["0.9rem", "1.5rem"]}
+                edges={[
+                  { from: "A", to: "B" },
+                  { from: "C", to: "D" },
+                  { from: "B", to: "E" },
+                  { from: "D", to: "F" },
+                  { from: "E", to: "G" },
+                ]}
+              >
+                <Node id="A" col="1" row="1">
+                  condition: country = BR
+                </Node>
+                <Node id="C" col="2" row="1">
+                  mặc định
+                </Node>
+                <Node id="B" col="1" row="2">
+                  show_interval_ms = 60000
+                </Node>
+                <Node id="D" col="2" row="2">
+                  show_interval_ms = 30000
+                </Node>
+                <Node id="E" col="1" row="3">
+                  app tại BR fetch
+                </Node>
+                <Node id="F" col="2" row="3">
+                  app nơi khác fetch
+                </Node>
+                <Node id="G" col="1" row="4">
+                  so cohort BR trước / sau
+                </Node>
+              </Canvas>
+            </Figure>
+          }
+          why={
+            <p>
+              Condition theo quốc gia đổi được hành vi mà không qua review store,
+              nhưng so trước/sau trong cùng một nước không tách được tác động
+              của giãn cách khỏi bản phát hành và campaign. Team cũng chỉ đo
+              retention, không đo doanh thu ad trên mỗi người dùng, nên không
+              biết đã đổi bao nhiêu tiền lấy hai điểm D1.
+            </p>
+          }
+          lesson="Remote Config đổi được hành vi; nhóm đối chứng song song mới cho biết thay đổi có đáng không, và phải đo cả cái được lẫn cái mất."
         />
-      </Section>
-
-      <Section title="Cache local đang hỏng">
-        <Mermaid
-          caption="Đường ghi chạy tốt, đường đọc bị cắt"
-          chart={`flowchart LR
-  A["setAdConfigs()"] --> B["_cacheAdConfigs()"]
-  B --> C["SharedPreferences<br/>KEY_ADMOB_CONFIGS"]
-  C -.->|"dòng đọc bị comment"| D["initialize()"]
-  D --> E["luôn dùng bundled default"]
-  style C stroke-dasharray: 4 4`}
+        <UseCase
+          n="2"
+          title="Người dùng mới ở vùng mạng yếu thấy ad dày đặc"
+          situation={
+            <p>
+              Người dùng mới cài trong vùng mạng yếu gặp interstitial sau gần như
+              mọi thao tác ở phiên đầu, rồi gỡ app. Fetch đã quá timeout và chưa
+              có cache vì là lần mở đầu.
+            </p>
+          }
+          why={
+            <p>
+              App chạy hoàn toàn bằng in-app default, mà default bật mọi format
+              với giãn cách ngắn &ldquo;cho chắc doanh thu&rdquo;. Nhóm dễ rời
+              bỏ nhất nhận trải nghiệm dày ad nhất. Ngược lại, nếu default dùng
+              ad unit cũ đã tắt thì họ không thấy ad nào.
+            </p>
+          }
+          lesson="Giá trị mặc định là thứ người dùng mới nhất gặp trong điều kiện tệ nhất. Cập nhật nó mỗi bản phát hành."
         />
-        <Note tone="warn" title="Mỗi lần mở app lạnh đều bắt đầu từ config viết cứng">
-          <p>
-            <C>_cacheAdConfigs</C> ghi JSON vào <C>KEY_ADMOB_CONFIGS</C> sau mỗi
-            lần parse, nhưng dòng đọc trong <C>initialize()</C> đang bị comment.
-            Config remote của phiên trước không được tận dụng, và mọi quảng cáo
-            preload trước splash đều chạy bằng giá trị bundled.
-          </p>
-        </Note>
-      </Section>
-
-      <Section title="Cách đổi config an toàn">
-        <Facts
-          rows={[
-            ["Bật tắt nhanh một format", <>đổi <C>is_ad_enabled</C></>],
-            ["Giãn tần suất full ad", <>đổi <C>ad_show_interval</C></>],
-            ["Đổi waterfall", <>sắp lại thứ tự mảng <C>ad_units</C> (chỉ có tác dụng với native và open ad)</>],
-            ["Tắt reload native", <>đặt <C>ad_refresh_time</C> về 0</>],
-            [
-              "Hiệu lực sau bao lâu",
-              "tối đa 1 giờ do minimumFetchInterval, và chỉ áp dụng từ lần mở app kế tiếp vì fetch nằm ở splash",
-            ],
-            [
-              "Mỗi app một tiền tố",
-              <>
-                <C>FBASE_ROOT</C> đang là <C>&quot;BASE&quot;</C> kèm comment{" "}
-                <C>TODO</C>. App fork phải đổi, nếu không hai app tranh cùng một
-                khoá
-              </>,
-            ],
-          ]}
+        <UseCase
+          n="3"
+          title="Rollout 10% một format mới mà không quyết được bước tiếp"
+          situation={
+            <p>
+              Team thay app open bằng native toàn màn hình lúc mở app, rollout
+              10% người dùng<Assumed />. Sau ba ngày, crash-free users của nhóm
+              10% không đổi, và team phải quyết có tăng lên 50% không.
+            </p>
+          }
+          why={
+            <p>
+              Không có event ad theo format, nên team thấy được độ ổn định nhưng
+              không thấy ARPDAU của nhóm 10% so với 90% còn lại. Họ hoặc tăng
+              rollout mà không biết doanh thu đổi ra sao, hoặc dừng lại vì không
+              có căn cứ.
+            </p>
+          }
+          lesson="Rollout chỉ hữu ích khi chỉ số để quyết định đã có sẵn trước lúc bật."
         />
       </Section>
     </>

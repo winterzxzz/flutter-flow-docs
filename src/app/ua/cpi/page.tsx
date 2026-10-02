@@ -1,6 +1,7 @@
-import { Mermaid } from "@/components/mermaid";
+import { Canvas, Figure, Group, Node, Tree } from "@/components/diagram";
 import { PageHeader, Section } from "@/components/page-header";
-import { C, Facts, Grid, Note } from "@/components/bits";
+import { Facts, Grid, Note, P } from "@/components/bits";
+import { Assumed, UseCase } from "@/components/usecase";
 
 export const metadata = { title: "CPI · ROAS" };
 
@@ -8,21 +9,29 @@ export default function Cpi() {
   return (
     <>
       <PageHeader
-        eyebrow="UA · chương 7"
+        eyebrow="UA · khái niệm"
         title="CPI, ARPU và ROAS"
-        lead="ARPU nói người dùng đáng giá bao nhiêu. CPI nói thu hút họ tốn bao nhiêu. ROAS là tỉ số giữa hai con số đó, và là thứ quyết định scale hay dừng."
+        lead="Một lượt cài rẻ chỉ đáng mua khi người đó trả lại nhiều hơn số tiền bỏ ra, trong kỳ hoàn vốn bạn chịu được. ROAS gói câu hỏi đó thành một tỉ số, và ngưỡng của nó suy ra từ đường cong doanh thu của chính app."
       />
 
       <Section title="Quan hệ ba chỉ số">
-        <Mermaid
-          caption="ROAS = doanh thu ÷ chi phí. Hoà vốn ở mức 1 (tức 100%); tỉ số này không bao giờ âm"
-          chart={`flowchart LR
-  A["ARPU<br/>doanh thu / user"] --> R{"ROAS"}
-  B["CPI<br/>chi phí / install"] --> R
-  R -->|"> 1 · trên 100%"| S["có lãi · scale"]
-  R -->|"= 1 · hoà vốn"| O["tối ưu creative, targeting"]
-  R -->|"< 1 · dưới 100%"| X["lỗ · dừng hoặc sửa"]`}
-        />
+        <Figure caption="ROAS = doanh thu ÷ chi phí. Hoà vốn ở mức 1, tức 100%">
+          <Tree
+            feeds={[
+              { label: "ARPU", sub: "doanh thu / user" },
+              { label: "CPI", sub: "chi phí / install" },
+            ]}
+            root={{
+              tone: "key",
+              label: "ROAS",
+              kids: [
+                { when: "> 1 · trên 100%", tone: "good", label: "có lãi · scale" },
+                { when: "= 1 · hoà vốn", label: "tối ưu creative, targeting" },
+                { when: "< 1 · dưới 100%", tone: "bad", label: "lỗ · dừng hoặc sửa" },
+              ],
+            }}
+          />
+        </Figure>
         <Note tone="info" title="Thị trường CPI cao thường có ARPU cao">
           <p>
             Đây là lý do CPI thấp không tự động tốt. Tier 3 cho CPI rẻ nhưng
@@ -33,38 +42,64 @@ export default function Cpi() {
       </Section>
 
       <Section title="Kỳ hoàn vốn quyết định ngưỡng chấp nhận">
-        <Mermaid
-          caption="CPI vượt ARPU ở giai đoạn sớm là bình thường; điều quan trọng là vị trí tại mốc hoàn vốn"
-          chart={`flowchart TB
-  P{"Chọn kỳ hoàn vốn"}
-  P -->|30-90 ngày| S1["Thu hồi nhanh<br/>ít chịu đựng lỗ dài hạn<br/>hợp app vòng đời ngắn"]
-  P -->|180-365 ngày| S2["Thu hồi chậm<br/>nhắm user LTV cao<br/>cần vốn khoẻ"]
-  S1 --> R["Điều kiện chung:<br/>CPI &lt; ARPU tại mốc hoàn vốn"]
-  S2 --> R`}
-        />
-        <Facts
-          rows={[
-            [
-              "Cách tính CPI tối đa",
-              "lấy ARPU tích luỹ dự kiến tại mốc hoàn vốn; CPI phải nằm dưới con số đó",
-            ],
-            [
-              "ARPU và LTV khác nhau chỗ nào",
-              "ARPU là doanh thu trung bình trên đầu người trong một khoảng thời gian; LTV là phần tích luỹ tới hết vòng đời. Đặt trần CPI theo ARPU tại mốc hoàn vốn, không theo LTV trọn đời — lấy LTV sẽ ra trần cao hơn nhiều và khiến bạn trả trước cho khoản doanh thu chưa tới.",
-            ],
-            [
-              "Sai lầm hay gặp",
-              "so CPI hôm nay với ARPU hôm nay. Phải so với ARPU tích luỹ tới hết kỳ hoàn vốn.",
-            ],
-          ]}
-        />
+        <Figure caption="CPI vượt ARPU ở giai đoạn sớm là bình thường; điều quan trọng là vị trí tại mốc hoàn vốn">
+          <Tree
+            root={{
+              tone: "ask",
+              label: "Chọn kỳ hoàn vốn",
+              kids: [
+                {
+                  when: "30-90 ngày",
+                  label: "Thu hồi nhanh",
+                  sub: (
+                    <>
+                      ít chịu đựng lỗ dài hạn
+                      <br />
+                      hợp app vòng đời ngắn
+                    </>
+                  ),
+                },
+                {
+                  when: "180-365 ngày",
+                  label: "Thu hồi chậm",
+                  sub: (
+                    <>
+                      nhắm user LTV cao
+                      <br />
+                      cần vốn khoẻ
+                    </>
+                  ),
+                },
+              ],
+            }}
+            join={{
+              tone: "key",
+              label: (
+                <>
+                  Điều kiện chung:
+                  <br />
+                  CPI &lt; ARPU tại mốc hoàn vốn
+                </>
+              ),
+            }}
+          />
+        </Figure>
+        <P>
+          CPI tối đa là LTV tại mốc hoàn vốn: doanh thu tích luỹ trên mỗi người
+          tới đúng ngày bạn muốn thu hồi chi phí. ARPU là doanh thu trung bình
+          trong một khoảng thời gian, còn LTV trọn đời là con số dự báo cho cả
+          vòng đời; lấy LTV trọn đời làm trần sẽ ra con số cao hơn nhiều và
+          khiến bạn trả trước cho doanh thu chưa tới. Sai lầm hay gặp là so CPI
+          hôm nay với doanh thu trên đầu người hôm nay, trong khi phải so với
+          LTV tới hết kỳ hoàn vốn.
+        </P>
       </Section>
 
       <Section title="Khi nào ưu tiên CPI, khi nào ưu tiên ROAS">
         <Grid
           head={["Tình huống", "Ưu tiên", "Vì sao"]}
           rows={[
-            ["Soft launch", "CPI thấp", "cần nhiều dữ liệu với chi phí rẻ nhất"],
+            ["Technical launch", "CPI thấp", "cần nhiều dữ liệu với chi phí rẻ nhất"],
             [
               "Cần khối lượng để đẩy organic",
               "CPI thấp",
@@ -83,10 +118,10 @@ export default function Cpi() {
       <Section title="CPI biến động theo cái gì">
         <Facts
           rows={[
-            ["Nền tảng", "iOS cao hơn Android do tiềm năng ARPU cao hơn"],
+            ["Nền tảng", "iOS thường cao hơn Android, thường đi cùng ARPU cao hơn"],
             [
               "Địa lý",
-              "Tier 1 (Mỹ, Canada, Anh) cao · Tier 2 (Mexico, Ba Lan, Thái Lan) trung bình · Tier 3 (Việt Nam, Iraq, Moldova) thấp",
+              "theo tier thị trường: Tier 1 cao, Tier 3 thấp (ví dụ từng tier ở trang Thuật ngữ)",
             ],
             ["Thể loại", "casual rẻ hơn chiến thuật hoặc nhập vai"],
             ["Định dạng", "video đắt hơn banner nhưng gắn kết tốt hơn"],
@@ -95,68 +130,114 @@ export default function Cpi() {
         />
       </Section>
 
-      <Section title="Code hỗ trợ được phần nào">
-        <Mermaid
-          caption="Phần chi phí luôn nằm ngoài app; phần doanh thu mới là chỗ code quyết định"
-          chart={`flowchart TB
-  subgraph out["Ngoài app — mạng quảng cáo"]
-    C1["chi tiêu"]
-    C2["số lượt cài"]
-    C3["CPI = C1 ÷ C2"]
-  end
-  subgraph inapp["Trong app"]
-    D1["iap_purchase_success<br/>doanh thu IAP"]
-    D2["ua_campaign, ua_creative<br/>luôn = Unattributed"]
-    D3["onPaidEvent → Adjust<br/>doanh thu ad"]
-  end
-  C3 --> ROAS{"ROAS theo campaign"}
-  D1 --> ROAS
-  D2 -.->|attribution chưa nối| ROAS
-  D3 -.->|không cùng hệ| ROAS
-  style D2 stroke-dasharray: 4 4
-  style D3 stroke-dasharray: 4 4`}
-        />
-        <Note tone="warn" title="Chưa làm được: ROAS theo creative hay campaign">
+      <Section title="Dữ liệu cho ROAS theo campaign">
+        <Figure caption="Phần chi phí luôn nằm ngoài app; phần doanh thu và nguồn mới là chỗ app quyết định">
+          <Canvas
+            cols="minmax(0, 1fr) 5.4rem"
+            wcols="minmax(0, 2fr) minmax(0, 5fr)"
+            gap={["1.5rem", "1rem"]}
+            wgap={["1rem", "2.4rem"]}
+            edges={[
+              { from: "C3", to: "ROAS", inAt: 0.14, narrow: { inAt: "align" } },
+              { from: "D1", to: "ROAS", inAt: 0.38, narrow: { inAt: "align" } },
+              { from: "D2", to: "ROAS", inAt: 0.62, narrow: { inAt: "align" } },
+              { from: "D3", to: "ROAS", inAt: 0.86, narrow: { inAt: "align" } },
+            ]}
+          >
+            <Group title="Ngoài app — mạng quảng cáo" col="1" row="1" wcol="1" wrow="1">
+              <Node>chi tiêu</Node>
+              <Node>số lượt cài</Node>
+              <Node id="C3">CPI = chi tiêu ÷ số lượt cài</Node>
+            </Group>
+            <Group
+              title="Trong app"
+              col="1"
+              row="2"
+              wcol="2"
+              wrow="1"
+              wcols="repeat(3, minmax(0, 1fr))"
+            >
+              <Node id="D1">doanh thu IAP</Node>
+              <Node id="D2" sub="network · campaign · creative">
+                nguồn cài trên event
+              </Node>
+              <Node id="D3" sub="paid event">
+                doanh thu ad
+              </Node>
+            </Group>
+            <Node id="ROAS" tone="key" className="dg-tall dg-mid" col="2" row="1 / 3" wcol="1 / -1" wrow="2">
+              ROAS theo campaign
+            </Node>
+          </Canvas>
+        </Figure>
+        <Note tone="warn" title="Thiếu một mảnh là sai hướng">
           <p>
-            Năm trường <C>ua_*</C> có mặt trên mọi event nhưng giá trị luôn là{" "}
-            <C>&quot;Unattributed&quot;</C>: Adjust không được đăng ký callback
-            và hàm nhận attribution trong app không có nơi nào gọi. Không thể
-            tách doanh thu theo nguồn cho tới khi nối xong.
-          </p>
-        </Note>
-        <Note tone="warn" title="Chưa làm được: ROAS tổng">
-          <p>
-            Thiếu doanh thu IAA trong cùng hệ, nên ROAS tính ra sẽ thấp giả. Với
-            app sống bằng quảng cáo, con số này có thể làm bạn tắt nhầm một
-            chiến dịch đang có lãi.
-          </p>
-        </Note>
-        <Note tone="good" title="Làm được ngay: ROAS ở mức tổng theo cohort">
-          <p>
-            <C>install_day</C> và <C>retention_day</C> do SDK gắn sẵn, nên so
-            doanh thu IAP tích luỹ của một cohort với tổng chi tiêu của đúng
-            khoảng ngày đó là làm được, chỉ là không bóc tách được xuống từng
-            campaign.
+            Thiếu nguồn trên event thì chỉ có ROAS tổng, không tách được
+            campaign. Thiếu doanh thu ad thì ROAS lệch thấp — với app sống bằng
+            quảng cáo, đủ để tắt nhầm một chiến dịch đang có lãi.
           </p>
         </Note>
       </Section>
 
-      <Section title="Khi nào nên dừng hẳn">
-        <Facts
-          rows={[
-            ["Chỉ số kém dai dẳng", "tối ưu nhiều vòng mà CPI, ROAS, retention vẫn không đạt"],
-            ["Không thể scale có lãi", "chi phí thu hút luôn vượt giá trị người dùng"],
-            ["Sai market fit", "dữ liệu và phản hồi đều cho thấy sản phẩm không cộng hưởng"],
-            ["Cạn nguồn lực đội ngũ", "dự án ngốn tập trung mà không có tiến bộ đo được"],
-          ]}
+      <Section title="Usecase">
+        <UseCase
+          n="1"
+          title="CPI bao nhiêu thì hoà vốn"
+          situation={
+            <p>
+              App chọn kỳ hoàn vốn 90 ngày. Từ cohort cũ, LTV D90 là
+              1,20 USD<Assumed />.
+            </p>
+          }
+          why={
+            <p>
+              CPI tối đa để hoà vốn ở D90 là 1,20 USD. Nếu muốn lãi 20% ở mốc đó
+              thì CPI ≤ 1,20 ÷ 1,2 = 1,00 USD. Lấy LTV trọn đời (giả sử 2,00 USD)
+              làm trần là đang trả trước cho doanh thu sau ngày 90, thứ chưa chắc tới.
+            </p>
+          }
+          lesson="Trần CPI = LTV tại mốc hoàn vốn ÷ (1 + biên lãi mong muốn). Câu hỏi kiểm tra: con số bạn đang dùng làm trần là LTV tới ngày nào?"
         />
-        <Note tone="info" title="Dừng không phải thất bại">
-          <p>
-            Nhận ra sớm tiết kiệm thời gian và ngân sách cho cơ hội tiếp theo.
-            Trước khi đầu tư nặng vào dự án mới, kiểm chứng ý tưởng bằng concept
-            testing.
-          </p>
-        </Note>
+        <UseCase
+          n="2"
+          title="ROAS D7 bao nhiêu là tạm ổn"
+          situation={
+            <p>
+              Một campaign mới có ROAS D7 = 45%. Cohort cũ của app cho thấy doanh
+              thu D90 gấp 2,5 lần D7<Assumed />.
+            </p>
+          }
+          flow={
+            <Grid
+              head={["Mốc", "ROAS dự kiến", "Cách tính"]}
+              rows={[
+                ["D7", "45%", "đo được"],
+                ["D90", "≈ 112%", "45% × 2,5"],
+              ]}
+            />
+          }
+          why={
+            <p>
+              Không có con số ROAS D7 &ldquo;chuẩn ngành&rdquo; dùng chung được.
+              Ngưỡng của bạn là 100% chia cho hệ số D90/D7 của chính app: ở đây
+              100 ÷ 2,5 = 40%. Campaign 45% vượt ngưỡng; campaign 30% thì không,
+              dù trông &ldquo;không tệ&rdquo;.
+            </p>
+          }
+          lesson="Ngưỡng ROAS sớm suy ra từ đường cong doanh thu của chính app và kỳ hoàn vốn đã chọn, không mượn từ app khác."
+        />
+      </Section>
+
+      <Section title="Dừng một campaign khác với dừng cả dự án">
+        <P>
+          Dừng một campaign khi sau hai, ba vòng thay creative mà ROAS D7 vẫn
+          dưới ngưỡng của app, tức 100% chia cho hệ số D90/D7 như ở usecase 2.
+          Dừng cả dự án là một quyết định khác: khi không creative nào, ở thị
+          trường nào, đưa được LTV tại mốc hoàn vốn lên trên CPI. Trước khi đi
+          tới kết luận đó, kiểm tra lại dữ liệu doanh thu có đủ cả IAP lẫn
+          quảng cáo chưa, vì thiếu một nửa doanh thu là cách nhanh nhất để giết
+          nhầm một app có lãi.
+        </P>
       </Section>
     </>
   );
